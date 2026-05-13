@@ -19,10 +19,6 @@ const els = {
     overlay: $('sidebarOverlay'),
     calGrid: $('calendarGrid'),
     headerMonth: $('headerMonth'),
-    eventsPanel: $('dayEventsPanel'),
-    eventsTitle: $('dayEventsTitle'),
-    eventsCount: $('dayEventsCount'),
-    eventsList: $('dayEventsList'),
     modalOverlay: $('eventModalOverlay'),
     eventTitle: $('eventTitle'),
     eventDate: $('eventDate'),
@@ -73,7 +69,7 @@ function closeSidebar() {
 }
 
 // All menu buttons
-['menuBtn','menuBtnAI','menuBtnProfile','menuBtnSearch'].forEach(id => {
+['menuBtn','menuBtnAI','menuBtnProfile','menuBtnSearch','menuBtnSettings'].forEach(id => {
     const el = $(id);
     if (el) el.addEventListener('click', openSidebar);
 });
@@ -88,7 +84,7 @@ $$('.sidebar-nav-item').forEach(item => {
         if (page === 'calendar') switchPage('pageCalendar');
         else if (page === 'events') switchPage('pageCalendar');
         else if (page === 'reminders') switchPage('pageCalendar');
-        else if (page === 'settings') switchPage('pageProfile');
+        else if (page === 'settings') switchPage('pageSettings');
         $$('.sidebar-nav-item').forEach(n => n.classList.remove('active'));
         item.classList.add('active');
         closeSidebar();
@@ -178,60 +174,11 @@ function renderCalendar() {
                 state.currentDate = new Date(state.selectedDate);
             }
             renderCalendar();
-            renderDayEvents();
-        });
-    });
-
-    renderDayEvents();
-}
-
-function renderDayEvents() {
-    const d = state.selectedDate;
-    const today = new Date();
-    const isToday = sameDay(d, today);
-    const dayName = isToday ? 'Heute' : DAYS[d.getDay()];
-    els.eventsTitle.textContent = `${dayName}, ${d.getDate()}. ${MONTHS_SHORT[d.getMonth()]}`;
-
-    const events = getEventsForDate(d);
-    els.eventsCount.textContent = `${events.length} Termin${events.length !== 1 ? 'e' : ''}`;
-
-    if (events.length === 0) {
-        els.eventsList.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state-icon">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity="0.3"><rect x="3" y="4" width="18" height="18" rx="4" ry="4"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                </div>
-                <p>Keine Termine</p>
-                <span>Tippe auf + um einen Termin zu erstellen</span>
-            </div>`;
-        return;
-    }
-
-    events.sort((a, b) => a.startTime.localeCompare(b.startTime));
-    els.eventsList.innerHTML = events.map((ev, i) => `
-        <div class="event-card" style="animation-delay:${i * 0.05}s">
-            <div class="event-color-bar" style="background:${ev.color}"></div>
-            <div class="event-card-content">
-                <div class="event-card-title">${ev.title}</div>
-                <div class="event-card-time">${ev.startTime} – ${ev.endTime}</div>
-            </div>
-            <button class="event-card-delete" data-id="${ev.id}" aria-label="Termin löschen">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-            </button>
-        </div>
-    `).join('');
-
-    // Delete handlers
-    $$('.event-card-delete').forEach(btn => {
-        btn.addEventListener('click', e => {
-            e.stopPropagation();
-            const id = btn.dataset.id;
-            state.events = state.events.filter(ev => ev.id !== id);
-            saveEvents();
-            renderCalendar();
         });
     });
 }
+
+
 
 // ===== MONTH NAVIGATION (swipe) =====
 let touchStartX = 0;
@@ -407,8 +354,11 @@ function updateStats() {
     if (els.statEvents) els.statEvents.textContent = state.events.length;
 }
 
-// ===== TOGGLE =====
+// ===== TOGGLES =====
 $('toggleNotifications')?.addEventListener('click', function() {
+    this.classList.toggle('active');
+});
+$('toggleDarkMode')?.addEventListener('click', function() {
     this.classList.toggle('active');
 });
 
