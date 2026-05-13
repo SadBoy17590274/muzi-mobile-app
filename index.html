@@ -61,17 +61,11 @@
         <!-- Calendar Page -->
         <div class="page active" id="pageCalendar">
             <!-- Top Header -->
-            <header class="top-header">
-                <button class="header-btn" id="menuBtn" aria-label="Menü öffnen">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
-                </button>
+            <header class="top-header header-center">
                 <div class="header-title-group">
                     <h1 class="header-month" id="headerMonth">Mai 2026</h1>
                     <span class="header-today-badge" id="headerTodayBadge">Heute</span>
                 </div>
-                <button class="header-btn" id="addEventBtn" aria-label="Termin hinzufügen">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                </button>
             </header>
 
             <!-- View Switcher -->
@@ -91,17 +85,33 @@
                 <div class="calendar-grid" id="calendarGrid"></div>
             </div>
 
+            <!-- Day Detail Modal -->
+            <div class="day-detail-overlay" id="dayDetailOverlay">
+                <div class="day-detail-sheet" id="dayDetailSheet">
+                    <div class="modal-handle"></div>
+                    <div class="day-detail-header">
+                        <h2 class="day-detail-title" id="dayDetailTitle">Heute, 13. Mai</h2>
+                        <span class="day-detail-count" id="dayDetailCount">0 Termine</span>
+                    </div>
+                    <div class="day-detail-list" id="dayDetailList">
+                        <div class="empty-state">
+                            <p>Keine Termine</p>
+                            <span>Tippe auf + um einen Termin zu erstellen</span>
+                        </div>
+                    </div>
+                    <button class="day-detail-add-btn" id="dayDetailAddBtn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Termin hinzufügen
+                    </button>
+                </div>
+            </div>
 
         </div>
 
         <!-- AI Page -->
         <div class="page" id="pageAI">
-            <header class="top-header">
-                <button class="header-btn" id="menuBtnAI" aria-label="Menü öffnen">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
-                </button>
+            <header class="top-header header-center">
                 <h1 class="header-month">Muzi AI</h1>
-                <div style="width:40px"></div>
             </header>
             <div class="ai-chat-container">
                 <div class="ai-welcome">
@@ -128,18 +138,15 @@
 
         <!-- Profile Page -->
         <div class="page" id="pageProfile">
-            <header class="top-header">
-                <button class="header-btn" id="menuBtnProfile" aria-label="Menü öffnen">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
-                </button>
+            <header class="top-header header-center">
                 <h1 class="header-month">Profil</h1>
-                <div style="width:40px"></div>
             </header>
             <div class="profile-container">
                 <div class="profile-card">
                     <div class="profile-avatar-large" id="profileAvatarLarge">M</div>
                     <h2 class="profile-name" id="profileName">Muzi Nutzer</h2>
                     <p class="profile-subtitle">Premium Mitglied</p>
+                    <button class="edit-profile-btn" id="editProfileBtn">Profil bearbeiten</button>
                 </div>
                 <div class="profile-stats">
                     <div class="stat-item">
@@ -155,17 +162,21 @@
                         <span class="stat-label">Tage Streak</span>
                     </div>
                 </div>
+
+                <!-- Family / All Profiles -->
+                <div class="profile-section">
+                    <h3 class="profile-section-title">Familienmitglieder</h3>
+                    <div class="profile-members-list" id="profileList">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- Settings Page -->
         <div class="page" id="pageSettings">
-            <header class="top-header">
-                <button class="header-btn" id="menuBtnSettings" aria-label="Menü öffnen">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
-                </button>
+            <header class="top-header header-center">
                 <h1 class="header-month">Einstellungen</h1>
-                <div style="width:40px"></div>
             </header>
             <div class="settings-container">
                 <div class="profile-section">
@@ -321,6 +332,54 @@
         </div>
     </div>
 
+    <!-- Profile Edit Modal -->
+        <div class="modal-overlay" id="profileModalOverlay">
+            <div class="modal" id="profileModal">
+                <div class="modal-handle"></div>
+                <div class="modal-header">
+                    <button class="modal-cancel-btn" id="profileModalCancelBtn">Abbrechen</button>
+                    <h2 class="modal-title">Profil bearbeiten</h2>
+                    <button class="modal-save-btn" id="profileModalSaveBtn">Speichern</button>
+                </div>
+                <div class="modal-body">
+                    <div class="profile-edit-avatar-container">
+                        <div class="profile-avatar-large edit-mode" id="profileEditAvatarPreview">M</div>
+                        <label class="profile-avatar-upload-btn">
+                            Bild auswählen
+                            <input type="file" id="profileImageInput" accept="image/*" style="display:none">
+                        </label>
+                        <button class="profile-avatar-remove-btn" id="profileImageRemoveBtn" style="display:none">Bild entfernen</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-input" id="profileNameInput" placeholder="Dein Name" autocomplete="off">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Profilfarbe</label>
+                        <div class="color-picker" id="profileColorPicker">
+                            <button class="color-dot active" data-color="#34C759" style="background:#34C759"></button>
+                            <button class="color-dot" data-color="#007AFF" style="background:#007AFF"></button>
+                            <button class="color-dot" data-color="#FF9500" style="background:#FF9500"></button>
+                            <button class="color-dot" data-color="#FF2D55" style="background:#FF2D55"></button>
+                            <button class="color-dot" data-color="#AF52DE" style="background:#AF52DE"></button>
+                            <button class="color-dot" data-color="#FFCC00" style="background:#FFCC00"></button>
+                            <button class="color-dot" data-color="#5856D6" style="background:#5856D6"></button>
+                            <button class="color-dot" data-color="#8E8E93" style="background:#8E8E93"></button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-top: 32px;">
+                        <button class="profile-avatar-remove-btn" id="deleteProfileBtn" style="width: 100%; padding: 12px; background: rgba(255,69,58,0.1); border-radius: 12px; font-weight: 600;">Profil löschen</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- App Logic -->
     <script src="app.js"></script>
 </body>
 </html>

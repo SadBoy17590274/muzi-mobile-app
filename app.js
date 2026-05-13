@@ -7,7 +7,12 @@ const state = {
     currentView: 'month',
     currentPage: 'pageCalendar',
     events: JSON.parse(localStorage.getItem('muzi_events') || '[]'),
-    selectedColor: '#FFFFFF'
+    profiles: JSON.parse(localStorage.getItem('muzi_profiles') || '[{"id":"1","name":"Muzi Nutzer","color":"#34C759","image":""}]'),
+    activeProfileId: localStorage.getItem('muzi_active_profile') || '1',
+    selectedColor: '#FFFFFF',
+    profileEditColor: '#34C759',
+    profileEditImage: '',
+    get profile() { return this.profiles.find(p => p.id === this.activeProfileId) || this.profiles[0]; }
 };
 
 // ===== DOM REFS =====
@@ -48,14 +53,118 @@ function formatDate(d) {
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+function isEventForActiveProfile(e) {
+    const activeStrId = String(state.activeProfileId);
+    const mainProfileId = String(state.profiles[0] ? state.profiles[0].id : '1');
+    return e.profileId ? String(e.profileId) === activeStrId : activeStrId === mainProfileId;
+}
+
 function getEventsForDate(date) {
     const ds = formatDate(date);
-    return state.events.filter(e => e.date === ds);
+    return state.events.filter(e => e.date === ds && isEventForActiveProfile(e));
 }
 
 function saveEvents() {
     localStorage.setItem('muzi_events', JSON.stringify(state.events));
     updateStats();
+}
+
+function saveProfile() {
+    localStorage.setItem('muzi_profiles', JSON.stringify(state.profiles));
+    localStorage.setItem('muzi_active_profile', state.activeProfileId);
+    updateProfileUI();
+    renderCalendar();
+}
+
+function updateProfileUI() {
+    const avatarEls = [$('profileAvatarLarge')];
+    const previewEl = $('profileEditAvatarPreview');
+    const nameEl = $('profileName');
+
+    const updateAvatar = (el) => {
+        if (!el) return;
+        if (state.profile.image) {
+            el.style.backgroundImage = `url(${state.profile.image})`;
+            el.textContent = '';
+            el.style.backgroundColor = 'transparent';
+        } else {
+            el.style.backgroundImage = 'none';
+            el.style.backgroundColor = state.profile.color;
+            el.textContent = state.profile.name.charAt(0).toUpperCase() || 'M';
+        }
+    };
+
+    avatarEls.forEach(updateAvatar);
+    if (previewEl) {
+        if (state.profileEditImage) {
+            previewEl.style.backgroundImage = `url(${state.profileEditImage})`;
+            previewEl.textContent = '';
+            previewEl.style.backgroundColor = 'transparent';
+        } else {
+            previewEl.style.backgroundImage = 'none';
+            previewEl.style.backgroundColor = state.profileEditColor;
+            previewEl.textContent = ($('profileNameInput')?.value.charAt(0).toUpperCase()) || 'M';
+        }
+    }
+
+    if (nameEl) nameEl.textContent = state.profile.name;
+    renderProfileList();
+}
+
+function renderProfileList() {
+    const list = $('profileList');
+    if (!list) return;
+    
+    const checkSvg = `<svg class="profile-member-check" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+    
+    let html = '';
+    state.profiles.forEach(p => {
+        const isActive = p.id === state.activeProfileId;
+        const avatarStyle = p.image 
+            ? `background-image: url(${p.image}); background-color: transparent;` 
+            : `background-color: ${p.color};`;
+        const initial = p.image ? '' : (p.name.charAt(0).toUpperCase() || '?');
+        html += `
+            <div class="profile-member-card ${isActive ? 'active' : ''}" data-id="${p.id}">
+                <div class="profile-member-avatar" style="${avatarStyle}">${initial}</div>
+                <div class="profile-member-info">
+                    <div class="profile-member-name">${p.name}</div>
+                    <div class="profile-member-role">${isActive ? 'Aktiv' : 'Tippen zum Wechseln'}</div>
+                </div>
+                ${checkSvg}
+            </div>
+        `;
+    });
+    
+    html += `
+        <div class="profile-add-btn" id="addProfileBtn">
+            <div class="profile-add-btn-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
+            Profil hinzufügen
+        </div>
+    `;
+    list.innerHTML = html;
+    
+    $$('.profile-member-card[data-id]').forEach(item => {
+        item.addEventListener('click', () => {
+            state.activeProfileId = item.dataset.id;
+            saveProfile();
+        });
+    });
+    
+    $('addProfileBtn')?.addEventListener('click', () => {
+        const newId = Date.now().toString();
+        state.profiles.push({
+            id: newId,
+            name: 'Neuer Nutzer',
+            color: '#007AFF',
+            image: ''
+        });
+        state.activeProfileId = newId;
+        saveProfile();
+        $('editProfileBtn')?.click();
+    });
 }
 
 // ===== SIDEBAR =====
@@ -109,7 +218,33 @@ $$('.nav-item').forEach(btn => {
 });
 
 // ===== CALENDAR RENDERING =====
+function renderEventIndicator(evts) {
+    if (!evts.length) return '';
+    const bars = evts.slice(0, 3).map(e =>
+        `<div class="cal-day-bar" style="background:${e.color}"></div>`
+    ).join('');
+    const badge = evts.length >= 3
+        ? `<div class="cal-day-badge">${evts.length}</div>`
+        : '';
+    return `<div class="cal-day-events">${bars}</div>${badge}`;
+}
+
 function renderCalendar() {
+    const view = state.currentView;
+    els.calGrid.className = `calendar-grid view-${view}`;
+    
+    // Hide standard day names header if not in month view
+    const dayNamesHeader = document.querySelector('.calendar-day-names');
+    if (dayNamesHeader) {
+        dayNamesHeader.style.display = view === 'month' ? 'grid' : 'none';
+    }
+
+    if (view === 'month') renderMonthView();
+    else if (view === 'week') renderWeekView();
+    else renderDayView();
+}
+
+function renderMonthView() {
     const year = state.currentDate.getFullYear();
     const month = state.currentDate.getMonth();
     els.headerMonth.textContent = `${MONTHS[month]} ${year}`;
@@ -123,18 +258,15 @@ function renderCalendar() {
     const today = new Date();
 
     let html = '';
-    // Previous month days
     for (let i = startDay - 1; i >= 0; i--) {
         const d = daysInPrev - i;
         const date = new Date(year, month - 1, d);
         const evts = getEventsForDate(date);
         html += `<div class="cal-day other-month" data-date="${formatDate(date)}">
-            <span>${d}</span>
-            ${evts.length ? `<div class="cal-day-dots">${evts.slice(0,3).map(e => `<div class="cal-day-dot" style="background:${e.color}"></div>`).join('')}</div>` : ''}
+            <span>${d}</span>${renderEventIndicator(evts)}
         </div>`;
     }
 
-    // Current month days
     for (let d = 1; d <= daysInMonth; d++) {
         const date = new Date(year, month, d);
         const isToday = sameDay(date, today);
@@ -143,58 +275,220 @@ function renderCalendar() {
         const classes = ['cal-day'];
         if (isToday) classes.push('today');
         if (isSelected) classes.push('selected');
-
         html += `<div class="${classes.join(' ')}" data-date="${formatDate(date)}">
-            <span>${d}</span>
-            ${evts.length ? `<div class="cal-day-dots">${evts.slice(0,3).map(e => `<div class="cal-day-dot" style="background:${e.color}"></div>`).join('')}</div>` : ''}
+            <span>${d}</span>${renderEventIndicator(evts)}
         </div>`;
     }
 
-    // Next month days
     const totalCells = startDay + daysInMonth;
     const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
     for (let d = 1; d <= remaining; d++) {
         const date = new Date(year, month + 1, d);
         const evts = getEventsForDate(date);
         html += `<div class="cal-day other-month" data-date="${formatDate(date)}">
-            <span>${d}</span>
-            ${evts.length ? `<div class="cal-day-dots">${evts.slice(0,3).map(e => `<div class="cal-day-dot" style="background:${e.color}"></div>`).join('')}</div>` : ''}
+            <span>${d}</span>${renderEventIndicator(evts)}
         </div>`;
     }
 
     els.calGrid.innerHTML = html;
+    attachDayEvents();
+}
 
-    // Day click handlers
-    $$('.cal-day').forEach(day => {
-        day.addEventListener('click', () => {
-            const parts = day.dataset.date.split('-');
+function renderWeekView() {
+    const d = new Date(state.selectedDate);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday
+    const monday = new Date(d.setDate(diff));
+    
+    els.headerMonth.textContent = `Woche ${getWeekNumber(monday)}, ${MONTHS[monday.getMonth()]}`;
+    
+    let html = '<div class="week-timeline">';
+    const today = new Date();
+    
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(monday);
+        date.setDate(monday.getDate() + i);
+        const isToday = sameDay(date, today);
+        const isSelected = sameDay(date, state.selectedDate);
+        const evts = getEventsForDate(date);
+        
+        html += `
+            <div class="week-day-group ${isSelected ? 'selected' : ''}" data-date="${formatDate(date)}">
+                <div class="week-day-sidebar">
+                    <span class="week-day-name">${DAYS[date.getDay()].substring(0,2)}</span>
+                    <span class="week-day-number ${isToday ? 'today' : ''}">${date.getDate()}</span>
+                </div>
+                <div class="week-day-content">
+                    ${evts.length ? evts.map(ev => `
+                        <div class="week-event-card">
+                            <div class="week-event-color" style="background:${ev.color}"></div>
+                            <div class="week-event-info">
+                                <div class="week-event-title">${ev.title}</div>
+                                <div class="week-event-time">${ev.startTime} – ${ev.endTime}</div>
+                            </div>
+                        </div>
+                    `).join('') : '<div class="week-empty-state">Keine Termine</div>'}
+                </div>
+            </div>
+        `;
+    }
+    html += '</div>';
+    els.calGrid.innerHTML = html;
+    
+    $$('.week-day-group').forEach(group => {
+        group.addEventListener('click', () => {
+            const parts = group.dataset.date.split('-');
             state.selectedDate = new Date(parts[0], parts[1] - 1, parts[2]);
-            // If different month, navigate
-            if (state.selectedDate.getMonth() !== state.currentDate.getMonth()) {
-                state.currentDate = new Date(state.selectedDate);
-            }
             renderCalendar();
+            openDayDetail();
         });
     });
 }
 
+function getWeekNumber(d) {
+    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+    return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+}
 
+function renderDayView() {
+    const d = state.selectedDate;
+    els.headerMonth.textContent = `${d.getDate()}. ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+    
+    const events = getEventsForDate(d);
+    let html = `
+        <div class="day-view-container">
+            <div class="day-view-header">
+                <div class="day-view-big-date">${d.getDate()}</div>
+                <div class="day-view-day-name">${DAYS[d.getDay()]}</div>
+            </div>
+            <div class="day-view-list">
+                ${events.length ? events.map(ev => `
+                    <div class="event-card">
+                        <div class="event-color-bar" style="background:${ev.color}"></div>
+                        <div class="event-card-content">
+                            <div class="event-card-title">${ev.title}</div>
+                            <div class="event-card-time">${ev.startTime} – ${ev.endTime}</div>
+                        </div>
+                    </div>
+                `).join('') : '<div class="empty-state"><p>Keine Termine</p></div>'}
+            </div>
+        </div>
+    `;
+    els.calGrid.innerHTML = html;
+}
 
-// ===== MONTH NAVIGATION (swipe) =====
+function attachDayEvents() {
+    $$('.cal-day').forEach(day => {
+        day.addEventListener('click', () => {
+            const parts = day.dataset.date.split('-');
+            state.selectedDate = new Date(parts[0], parts[1] - 1, parts[2]);
+            if (state.currentView === 'month' && state.selectedDate.getMonth() !== state.currentDate.getMonth()) {
+                state.currentDate = new Date(state.selectedDate);
+            }
+            renderCalendar();
+            if (state.currentView === 'month') openDayDetail();
+        });
+    });
+}
+
+// ===== CALENDAR SWIPE NAVIGATION =====
 let touchStartX = 0;
-const calWrapper = $('calendarWrapper');
-calWrapper.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
-calWrapper.addEventListener('touchend', e => {
-    const diff = e.changedTouches[0].clientX - touchStartX;
-    if (Math.abs(diff) > 60) {
-        if (diff > 0) {
-            state.currentDate.setMonth(state.currentDate.getMonth() - 1);
-        } else {
-            state.currentDate.setMonth(state.currentDate.getMonth() + 1);
-        }
-        renderCalendar();
+let touchStartY = 0;
+
+els.calGrid.addEventListener('touchstart', e => {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+}, { passive: true });
+
+els.calGrid.addEventListener('touchend', e => {
+    const touchEndX = e.changedTouches[0].screenX;
+    const touchEndY = e.changedTouches[0].screenY;
+    
+    const diffX = touchEndX - touchStartX;
+    const diffY = touchEndY - touchStartY;
+    
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+        changeMonth(diffX > 0 ? -1 : 1);
     }
+}, { passive: true });
+
+function changeMonth(direction) {
+    els.calGrid.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
+    els.calGrid.style.transform = `translateX(${direction > 0 ? '-30px' : '30px'})`;
+    els.calGrid.style.opacity = '0';
+    
+    setTimeout(() => {
+        state.currentDate.setMonth(state.currentDate.getMonth() + direction);
+        renderCalendar();
+        
+        els.calGrid.style.transition = 'none';
+        els.calGrid.style.transform = `translateX(${direction > 0 ? '30px' : '-30px'})`;
+        els.calGrid.offsetHeight; // force reflow
+        
+        els.calGrid.style.transition = 'transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.35s ease';
+        els.calGrid.style.transform = 'translateX(0)';
+        els.calGrid.style.opacity = '1';
+    }, 200);
+}
+
+// ===== DAY DETAIL SHEET =====
+function openDayDetail() {
+    const d = state.selectedDate;
+    const today = new Date();
+    const isToday = sameDay(d, today);
+    const dayName = isToday ? 'Heute' : DAYS[d.getDay()];
+    $('dayDetailTitle').textContent = `${dayName}, ${d.getDate()}. ${MONTHS_SHORT[d.getMonth()]}`;
+
+    const events = getEventsForDate(d);
+    $('dayDetailCount').textContent = `${events.length} Termin${events.length !== 1 ? 'e' : ''}`;
+
+    const list = $('dayDetailList');
+    if (events.length === 0) {
+        list.innerHTML = `<div class="empty-state"><p>Keine Termine</p><span>Tippe unten um einen Termin zu erstellen</span></div>`;
+    } else {
+        events.sort((a, b) => a.startTime.localeCompare(b.startTime));
+        list.innerHTML = events.map((ev, i) => `
+            <div class="event-card" style="animation-delay:${i * 0.05}s">
+                <div class="event-color-bar" style="background:${ev.color}"></div>
+                <div class="event-card-content">
+                    <div class="event-card-title">${ev.title}</div>
+                    <div class="event-card-time">${ev.startTime} – ${ev.endTime}</div>
+                </div>
+                <button class="event-card-delete" data-id="${ev.id}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+            </div>`).join('');
+
+        list.querySelectorAll('.event-card-delete').forEach(btn => {
+            btn.addEventListener('click', e => {
+                e.stopPropagation();
+                state.events = state.events.filter(ev => ev.id !== btn.dataset.id);
+                saveEvents();
+                renderCalendar();
+                openDayDetail();
+            });
+        });
+    }
+    $('dayDetailOverlay').classList.add('open');
+}
+
+function closeDayDetail() {
+    $('dayDetailOverlay').classList.remove('open');
+}
+
+$('dayDetailOverlay').addEventListener('click', e => {
+    if (e.target === $('dayDetailOverlay')) closeDayDetail();
 });
+
+$('dayDetailAddBtn').addEventListener('click', () => {
+    closeDayDetail();
+    openModal();
+});
+
+
+
 
 // Today button
 $('headerTodayBadge').addEventListener('click', () => {
@@ -209,6 +503,7 @@ $$('.view-btn').forEach(btn => {
         $$('.view-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         state.currentView = btn.dataset.view;
+        renderCalendar();
     });
 });
 
@@ -229,8 +524,8 @@ function closeModal() {
     els.modalOverlay.classList.remove('open');
 }
 
-$('addEventBtn').addEventListener('click', openModal);
-$('modalCancelBtn').addEventListener('click', closeModal);
+$('addEventBtn')?.addEventListener('click', openModal);
+$('modalCancelBtn')?.addEventListener('click', closeModal);
 els.modalOverlay.addEventListener('click', e => {
     if (e.target === els.modalOverlay) closeModal();
 });
@@ -256,7 +551,8 @@ $('modalSaveBtn').addEventListener('click', () => {
         startTime: els.eventStart.value,
         endTime: els.eventEnd.value,
         color: state.selectedColor,
-        notes: els.eventNotes.value.trim()
+        notes: els.eventNotes.value.trim(),
+        profileId: state.activeProfileId
     };
 
     state.events.push(event);
@@ -325,9 +621,10 @@ els.searchInput.addEventListener('input', () => {
         return;
     }
 
-    const results = state.events.filter(e =>
-        e.title.toLowerCase().includes(q) || (e.notes && e.notes.toLowerCase().includes(q))
-    );
+    const results = state.events.filter(e => {
+        if (!isEventForActiveProfile(e)) return false;
+        return e.title.toLowerCase().includes(q) || (e.notes && e.notes.toLowerCase().includes(q));
+    });
 
     if (results.length === 0) {
         els.searchResults.innerHTML = `
@@ -351,7 +648,9 @@ els.searchInput.addEventListener('input', () => {
 
 // ===== STATS =====
 function updateStats() {
-    if (els.statEvents) els.statEvents.textContent = state.events.length;
+    if (els.statEvents) {
+        els.statEvents.textContent = state.events.filter(isEventForActiveProfile).length;
+    }
 }
 
 // ===== TOGGLES =====
@@ -360,12 +659,119 @@ $('toggleNotifications')?.addEventListener('click', function() {
 });
 $('toggleDarkMode')?.addEventListener('click', function() {
     this.classList.toggle('active');
+    const isDark = this.classList.contains('active');
+    document.body.classList.toggle('light-mode', !isDark);
+    localStorage.setItem('muzi_dark_mode', isDark);
 });
+
+
+// ===== PROFILE EDIT MODAL =====
+const profileModalOverlay = $('profileModalOverlay');
+const profileImageInput = $('profileImageInput');
+const profileNameInput = $('profileNameInput');
+
+$('editProfileBtn')?.addEventListener('click', () => {
+    state.profileEditColor = state.profile.color;
+    state.profileEditImage = state.profile.image;
+    profileNameInput.value = state.profile.name;
+    
+    $$('#profileColorPicker .color-dot').forEach(d => {
+        d.classList.toggle('active', d.dataset.color === state.profileEditColor);
+    });
+
+    $('profileImageRemoveBtn').style.display = state.profileEditImage ? 'inline-block' : 'none';
+    updateProfileUI();
+    profileModalOverlay.classList.add('open');
+});
+
+$('profileModalCancelBtn')?.addEventListener('click', () => {
+    profileModalOverlay.classList.remove('open');
+});
+
+$('profileModalSaveBtn')?.addEventListener('click', () => {
+    state.profile.name = profileNameInput.value.trim() || 'Nutzer';
+    state.profile.color = state.profileEditColor;
+    state.profile.image = state.profileEditImage;
+    saveProfile();
+    profileModalOverlay.classList.remove('open');
+});
+
+$('deleteProfileBtn')?.addEventListener('click', () => {
+    if (state.profiles.length <= 1) {
+        alert('Du musst mindestens ein Profil behalten.');
+        return;
+    }
+    state.profiles = state.profiles.filter(p => p.id !== state.activeProfileId);
+    state.activeProfileId = state.profiles[0].id;
+    saveProfile();
+    profileModalOverlay.classList.remove('open');
+});
+
+profileModalOverlay?.addEventListener('click', e => {
+    if (e.target === profileModalOverlay) profileModalOverlay.classList.remove('open');
+});
+
+$$('#profileColorPicker .color-dot').forEach(dot => {
+    dot.addEventListener('click', () => {
+        state.profileEditColor = dot.dataset.color;
+        $$('#profileColorPicker .color-dot').forEach(d => d.classList.remove('active'));
+        dot.classList.add('active');
+        updateProfileUI();
+    });
+});
+
+profileImageInput?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            state.profileEditImage = e.target.result;
+            $('profileImageRemoveBtn').style.display = 'inline-block';
+            updateProfileUI();
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+$('profileImageRemoveBtn')?.addEventListener('click', () => {
+    state.profileEditImage = '';
+    $('profileImageRemoveBtn').style.display = 'none';
+    profileImageInput.value = '';
+    updateProfileUI();
+});
+
+profileNameInput?.addEventListener('input', updateProfileUI);
 
 // ===== INIT =====
 function init() {
+    // Migrate old single-profile data to multi-profile
+    const oldProfile = localStorage.getItem('muzi_profile');
+    if (oldProfile && !localStorage.getItem('muzi_profiles')) {
+        try {
+            const p = JSON.parse(oldProfile);
+            p.id = p.id || '1';
+            state.profiles = [p];
+            state.activeProfileId = p.id;
+            saveProfile();
+            localStorage.removeItem('muzi_profile');
+        } catch(e) {}
+    }
+
+    // Restore dark mode
+    const isDark = localStorage.getItem('muzi_dark_mode') !== 'false';
+    const darkToggle = $('toggleDarkMode');
+    if (darkToggle) {
+        darkToggle.classList.toggle('active', isDark);
+    }
+    document.body.classList.toggle('light-mode', !isDark);
+
+    // Restore profile edit colors from active profile
+    state.profileEditColor = state.profile.color;
+    state.profileEditImage = state.profile.image;
+
     renderCalendar();
     updateStats();
+    updateProfileUI();
     // Hide AI input bar initially
     const aiBar = document.querySelector('.ai-input-bar');
     if (aiBar) aiBar.style.display = 'none';
