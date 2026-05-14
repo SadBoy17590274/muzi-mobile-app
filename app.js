@@ -7,8 +7,8 @@ const state = {
     currentView: 'month',
     currentPage: 'pageCalendar',
     events: JSON.parse(localStorage.getItem('muzi_events') || '[]'),
-    profiles: JSON.parse(localStorage.getItem('muzi_profiles') || '[{"id":"1","name":"Muzi Nutzer","color":"#34C759","image":""}]'),
-    activeProfileId: localStorage.getItem('muzi_active_profile') || '1',
+    profiles: JSON.parse(localStorage.getItem('muzi_profiles_v2') || '[{"id":"1","name":"Muzi Nutzer","color":"#34C759","image":""}]'),
+    activeProfileId: localStorage.getItem('muzi_active_profile_v2') || '1',
     selectedColor: '#FFFFFF',
     profileEditColor: '#34C759',
     profileEditImage: '',
@@ -70,8 +70,13 @@ function saveEvents() {
 }
 
 function saveProfile() {
-    localStorage.setItem('muzi_profiles', JSON.stringify(state.profiles));
-    localStorage.setItem('muzi_active_profile', state.activeProfileId);
+    try {
+        localStorage.setItem('muzi_profiles_v2', JSON.stringify(state.profiles));
+        localStorage.setItem('muzi_active_profile_v2', state.activeProfileId);
+    } catch (e) {
+        console.error('Fehler beim Speichern des Profils:', e);
+        alert('Speicherlimit erreicht! Bitte lösche einige Bilder oder verwende kleinere Bilder.');
+    }
     updateProfileUI();
     renderCalendar();
 }
@@ -724,10 +729,24 @@ profileImageInput?.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
         const reader = new FileReader();
-        reader.onload = (e) => {
-            state.profileEditImage = e.target.result;
-            $('profileImageRemoveBtn').style.display = 'inline-block';
-            updateProfileUI();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const size = Math.min(img.width, img.height);
+                const sx = (img.width - size) / 2;
+                const sy = (img.height - size) / 2;
+                
+                canvas.width = 150;
+                canvas.height = 150;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, sx, sy, size, size, 0, 0, 150, 150);
+                
+                state.profileEditImage = canvas.toDataURL('image/jpeg', 0.8);
+                $('profileImageRemoveBtn').style.display = 'inline-block';
+                updateProfileUI();
+            };
+            img.src = event.target.result;
         };
         reader.readAsDataURL(file);
     }
@@ -775,6 +794,92 @@ function init() {
     // Hide AI input bar initially
     const aiBar = document.querySelector('.ai-input-bar');
     if (aiBar) aiBar.style.display = 'none';
+
+    if (!localStorage.getItem('muzi_first_open_done_v2')) {
+        const onboardingOverlay = $('onboardingOverlay');
+        if (onboardingOverlay) {
+            onboardingOverlay.classList.add('open');
+            setTimeout(() => {
+                const nameInput = $('onboardingNameInput');
+                if (nameInput) nameInput.focus();
+            }, 400);
+        }
+    }
 }
 
 init();
+
+// ===== ONBOARDING =====
+let onboardingColor = '#34C759';
+let onboardingImage = '';
+
+function updateOnboardingPreview() {
+    const preview = $('onboardingAvatarPreview');
+    if (!preview) return;
+    if (onboardingImage) {
+        preview.style.backgroundImage = `url(${onboardingImage})`;
+        preview.textContent = '';
+        preview.style.backgroundColor = 'transparent';
+    } else {
+        preview.style.backgroundImage = 'none';
+        preview.style.backgroundColor = onboardingColor;
+        preview.textContent = ($('onboardingNameInput')?.value.trim().charAt(0).toUpperCase()) || 'M';
+    }
+}
+
+$('onboardingNameInput')?.addEventListener('input', updateOnboardingPreview);
+
+$$('#onboardingColorPicker .color-dot').forEach(dot => {
+    dot.addEventListener('click', () => {
+        onboardingColor = dot.dataset.color;
+        $$('#onboardingColorPicker .color-dot').forEach(d => d.classList.remove('active'));
+        dot.classList.add('active');
+        updateOnboardingPreview();
+    });
+});
+
+$('onboardingImageInput')?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const size = Math.min(img.width, img.height);
+                const sx = (img.width - size) / 2;
+                const sy = (img.height - size) / 2;
+                
+                canvas.width = 150;
+                canvas.height = 150;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, sx, sy, size, size, 0, 0, 150, 150);
+                
+                onboardingImage = canvas.toDataURL('image/jpeg', 0.8);
+                $('onboardingImageRemoveBtn').style.display = 'inline-block';
+                updateOnboardingPreview();
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+$('onboardingImageRemoveBtn')?.addEventListener('click', () => {
+    onboardingImage = '';
+    $('onboardingImageRemoveBtn').style.display = 'none';
+    if ($('onboardingImageInput')) $('onboardingImageInput').value = '';
+    updateOnboardingPreview();
+});
+
+$('onboardingSaveBtn')?.addEventListener('click', () => {
+    const name = $('onboardingNameInput').value.trim() || 'Nutzer';
+    if (state.profiles && state.profiles.length > 0) {
+        state.profiles[0].name = name;
+        state.profiles[0].color = onboardingColor;
+        state.profiles[0].image = onboardingImage;
+        saveProfile();
+    }
+    localStorage.setItem('muzi_first_open_done_v2', 'true');
+    $('onboardingOverlay').classList.remove('open');
+});

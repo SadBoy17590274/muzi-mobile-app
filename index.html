@@ -377,6 +377,48 @@
             </div>
         </div>
 
+    <!-- Onboarding Modal -->
+    <div class="modal-overlay" id="onboardingOverlay">
+        <div class="modal" id="onboardingModal" style="border-radius: 28px;">
+            <div class="modal-header" style="justify-content: center; padding-top: 32px; border-bottom: none;">
+                <h2 class="modal-title" style="font-size: 24px; font-weight: 700;">Willkommen bei Muzi</h2>
+            </div>
+            <div class="modal-body" style="text-align: center; padding-top: 16px; padding-bottom: 32px;">
+                <p style="color: var(--text2); margin-bottom: 32px; font-size: 16px;">Bitte erstelle dein erstes Profil, um loszulegen.</p>
+                
+                <div class="profile-edit-avatar-container" style="margin-bottom: 24px;">
+                    <div class="profile-avatar-large edit-mode" id="onboardingAvatarPreview" style="margin: 0 auto 16px;">M</div>
+                    <label class="profile-avatar-upload-btn">
+                        Bild auswählen
+                        <input type="file" id="onboardingImageInput" accept="image/*" style="display:none">
+                    </label>
+                    <button class="profile-avatar-remove-btn" id="onboardingImageRemoveBtn" style="display:none; margin: 8px auto 0;">Bild entfernen</button>
+                </div>
+
+                <div class="form-group" style="text-align: left; margin-bottom: 24px;">
+                    <label class="form-label">Dein Name</label>
+                    <input type="text" class="form-input" id="onboardingNameInput" placeholder="Name eingeben" autocomplete="off" style="border-radius: 14px; padding: 16px;">
+                </div>
+                
+                <div class="form-group" style="text-align: left; margin-bottom: 32px;">
+                    <label class="form-label">Profilfarbe</label>
+                    <div class="color-picker" id="onboardingColorPicker">
+                        <button class="color-dot active" data-color="#34C759" style="background:#34C759"></button>
+                        <button class="color-dot" data-color="#007AFF" style="background:#007AFF"></button>
+                        <button class="color-dot" data-color="#FF9500" style="background:#FF9500"></button>
+                        <button class="color-dot" data-color="#FF2D55" style="background:#FF2D55"></button>
+                        <button class="color-dot" data-color="#AF52DE" style="background:#AF52DE"></button>
+                        <button class="color-dot" data-color="#FFCC00" style="background:#FFCC00"></button>
+                        <button class="color-dot" data-color="#5856D6" style="background:#5856D6"></button>
+                        <button class="color-dot" data-color="#8E8E93" style="background:#8E8E93"></button>
+                    </div>
+                </div>
+                
+                <button id="onboardingSaveBtn" style="width: 100%; padding: 16px; background: var(--text); color: var(--bg); border: none; border-radius: 16px; font-weight: 700; font-size: 17px; cursor: pointer; transition: all 0.2s;">Profil erstellen</button>
+            </div>
+        </div>
+    </div>
+
     </main>
 
     <!-- App Logic -->
