@@ -833,22 +833,87 @@ body:has(#pageAI.active) #pageCalendar {
     text-align: center;
     padding: 32px 16px;
 }
+/* ========== AI CAT AVATAR & ANIMATION ========== */
 .ai-avatar-large {
-    width: 72px; height: 72px;
-    border-radius: 22px;
+    width: 80px; height: 80px;
+    border-radius: 24px;
     background: var(--surface);
     display: flex; align-items: center; justify-content: center;
     margin: 0 auto 16px;
-    color: var(--text2);
+    position: relative;
+    font-size: 40px;
+    transition: all 1s ease;
 }
-.ai-welcome h2 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
-.ai-welcome p { font-size: 14px; color: var(--text2); line-height: 1.5; }
 
-.ai-suggestions {
-    display: flex; flex-wrap: wrap; gap: 6px;
-    justify-content: center;
-    padding: 0 8px 16px;
+/* Empathy Mode UI */
+body.empathy-mode #pageAI {
+    filter: contrast(0.9) brightness(0.8);
+    transition: filter 2s ease;
 }
+
+/* Joy Mode UI */
+body.joy-mode #pageAI {
+    filter: saturate(1.4) brightness(1.1);
+    transition: filter 1s ease;
+}
+.ai-avatar-large.joy {
+    background: linear-gradient(135deg, var(--surface), #FFCC00);
+    animation: bounce 1s ease infinite;
+}
+
+/* Stress Mode UI */
+body.stress-mode #pageAI {
+    filter: contrast(1.2);
+    transition: filter 1s ease;
+}
+.ai-avatar-large.stress {
+    background: rgba(255, 59, 48, 0.1);
+    animation: rapidPulse 2s ease infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+@keyframes rapidPulse {
+    0%, 100% { transform: scale(1); border-color: transparent; }
+    50% { transform: scale(1.05); border-color: #FF3B30; }
+}
+
+.ai-avatar-large.empathy {
+    background: var(--surface2);
+    transform: scale(0.95);
+}
+
+.ai-avatar-large .cat-eyes {
+    position: absolute;
+    top: 45%; left: 0; right: 0;
+    display: flex; justify-content: center; gap: 12px;
+    opacity: 0; /* Hidden by default if using emoji, but we'll use it for empathy state */
+    transition: opacity 1s ease;
+}
+
+.ai-avatar-large.empathy .cat-eyes { opacity: 1; }
+.ai-avatar-large.empathy span, 
+.ai-avatar-large.empathy svg { opacity: 0; } /* Hide emoji/svg in empathy mode */
+
+.eye {
+    width: 10px; height: 4px;
+    background: var(--text2);
+    border-radius: 2px;
+}
+
+/* Calming Breathing Animation */
+@keyframes calmingBreathing {
+    0%, 100% { transform: scale(0.95) translateY(0); }
+    50% { transform: scale(0.97) translateY(-2px); }
+}
+
+.ai-avatar-large.empathy {
+    animation: calmingBreathing 4s ease-in-out infinite;
+}
+
 .ai-suggestion-chip {
     background: var(--surface);
     border: 1px solid var(--border);

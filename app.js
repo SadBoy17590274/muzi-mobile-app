@@ -255,6 +255,8 @@ $$('.sidebar-nav-item').forEach(item => {
         if (page === 'calendar') switchPage('pageCalendar');
         else if (page === 'events') switchPage('pageCalendar');
         else if (page === 'reminders') switchPage('pageCalendar');
+        else if (page === 'notes') switchPage('pageNotes');
+        else if (page === 'creative') switchPage('pageCreative');
         else if (page === 'settings') switchPage('pageSettings');
         $$('.sidebar-nav-item').forEach(n => n.classList.remove('active'));
         item.classList.add('active');
@@ -1019,17 +1021,142 @@ function addAIMessage(text, type) {
     msg.scrollIntoView({ behavior: 'smooth' });
 }
 
-function sendAIMessage() {
+async function sendAIMessage() {
     const text = els.aiInput.value.trim();
     if (!text) return;
     addAIMessage(text, 'user');
     els.aiInput.value = '';
     
-    // typing indicator simulation
-    setTimeout(() => {
-        const response = processAIInput(text);
-        addAIMessage(response, 'bot');
-    }, 400 + Math.random() * 400);
+    // Typing indicator
+    const typingMsg = document.createElement('div');
+    typingMsg.className = 'ai-msg bot typing';
+    typingMsg.textContent = 'Muzi überlegt...';
+    els.aiMessages.appendChild(typingMsg);
+    typingMsg.scrollIntoView({ behavior: 'smooth' });
+
+    try {
+        const response = await fetch('http://localhost:5000/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: text,
+                activeProfileId: state.activeProfileId
+            })
+        });
+
+        const data = await response.json();
+        typingMsg.remove();
+        addAIMessage(data.response, 'bot');
+
+        if (data.action) {
+            handleAIAction(data.action);
+        }
+    } catch (error) {
+        typingMsg.remove();
+        console.error('AI Error:', error);
+        // Fallback to old regex logic if server is down
+        const fallbackResponse = processAIInput(text);
+        addAIMessage(fallbackResponse + " (Offline-Modus)", 'bot');
+    }
+}
+
+function handleAIAction(actionData) {
+    console.log("AI Action received:", actionData);
+    
+    if (actionData.type === 'action') {
+        if (actionData.action === 'create_event') {
+            const params = actionData.params || {};
+            const newEvent = {
+                id: Date.now().toString(),
+                title: params.title,
+                date: params.date,
+                startTime: params.time,
+                endTime: params.time,
+                profileId: state.activeProfileId,
+                color: state.profile.color,
+                urgency: params.urgency || 50, // Use semantic urgency
+                sync: params.sync,
+                projectName: params.project_name
+            };
+            state.events.push(newEvent);
+            saveEvents();
+            renderCalendar();
+            
+            if (params.sync === 'Creative Bar') {
+                // Update Creative Bar UI
+                const creativeCard = document.querySelector('#pageCreative .creative-card');
+                if (creativeCard) {
+                    const item = document.createElement('div');
+                    item.style.marginTop = '12px';
+                    item.style.padding = '10px';
+                    item.style.background = 'var(--surface2)';
+                    item.style.borderRadius = '10px';
+                    item.innerHTML = `<strong>${params.project_name}</strong><br><span style="font-size:12px;color:var(--text3)">Verknüpft mit: ${params.title}</span>`;
+                    creativeCard.appendChild(item);
+                }
+            }
+        } else if (actionData.action === 'reschedule') {
+            // Push all non-urgent events for today to tomorrow
+            const todayStr = formatDate(new Date());
+            let rescheduledCount = 0;
+            state.events = state.events.map(ev => {
+                if (ev.date === todayStr && ev.urgency < 80) {
+                    const d = new Date();
+                    d.setDate(d.getDate() + 1);
+                    ev.date = formatDate(d);
+                    rescheduledCount++;
+                }
+                return ev;
+            });
+            if (rescheduledCount > 0) {
+                saveEvents();
+                renderCalendar();
+            }
+        } else if (actionData.action === 'suggest_focus_block') {
+            const todayStr = formatDate(new Date());
+            state.events.push({
+                id: Date.now().toString(),
+                title: "🧠 Deep Work Focus",
+                date: todayStr,
+                startTime: "14:00", endTime: "16:00",
+                profileId: state.activeProfileId,
+                color: "#FF3B30",
+                urgency: 100,
+                sync: "Creative Bar"
+            });
+            saveEvents();
+            renderCalendar();
+            setTimeout(() => addAIMessage("Ich habe dir einen Focus-Block eingerichtet und Ablenkungen stummgeschaltet.", 'bot'), 1000);
+        } else if (actionData.action === 'save_asset') {
+            setTimeout(() => addAIMessage(`Erledigt! Ich habe das Asset im Hintergrund gespeichert (Simuliert).`, 'bot'), 1000);
+        } else if (actionData.action === 'switch_to_all_profiles') {
+            state.activeProfileId = 'all';
+            renderCalendar();
+            setTimeout(() => addAIMessage("Ich zeige dir jetzt die Termine aller Profile an.", 'bot'), 1000);
+        } else if (actionData.action === 'create_reminder' || actionData.action === 'add_to_pool') {
+            setTimeout(() => addAIMessage(`Ich habe das notiert! Soll ich dich später noch einmal daran erinnern?`, 'bot'), 1000);
+        } else if (actionData.action === 'burnout_intervention') {
+            setTimeout(() => addAIMessage("Vielleicht hilft eine kurze Pause? Die Arbeit läuft nicht weg. Soll ich dich in 20 Minuten wieder erinnern?", 'bot'), 1000);
+        } else if (actionData.action === 'dev_motivation') {
+            setTimeout(() => addAIMessage("Tief durchatmen! Das kriegen wir hin. Sollen wir das Problem in kleinere Stücke aufteilen?", 'bot'), 1000);
+        } else if (actionData.action === 'add_to_bucket_list') {
+            setTimeout(() => addAIMessage("Ich habe das auf unsere 'Irgendwann'-Bucket-List gesetzt. Es geht nicht vergessen, stresst aber heute auch nicht.", 'bot'), 1000);
+        } else if (actionData.action === 'suggest_distraction') {
+            setTimeout(() => addAIMessage("Lass uns etwas anderes machen. Wollen wir eine neue Leinwand in der Creative Bar aufmachen und etwas ohne Ziel skizzieren?", 'bot'), 1000);
+        }
+    } else if (actionData.type === 'mood_change' || actionData.type === 'empathy_mode') {
+        const mood = actionData.mood || (actionData.type === 'empathy_mode' ? 'empathy' : 'normal');
+        
+        // Remove all mood classes
+        document.body.classList.remove('empathy-mode', 'joy-mode', 'stress-mode');
+        const avatar = document.getElementById('aiAvatar');
+        if (avatar) avatar.classList.remove('empathy', 'joy', 'stress');
+
+        if (mood !== 'normal') {
+            document.body.classList.add(`${mood}-mode`);
+            if (avatar) avatar.classList.add(mood);
+        }
+    }
 }
 
 $('aiSendBtn').addEventListener('click', sendAIMessage);
