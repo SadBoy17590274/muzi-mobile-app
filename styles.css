@@ -10,6 +10,7 @@
     --text2: rgba(255,255,255,0.6);
     --text3: rgba(255,255,255,0.3);
     --accent: #ffffff;
+    --accent-glow: rgba(255,255,255,0.3);
     --border: rgba(255,255,255,0.05);
     --radius: 12px;
     --radius-lg: 14px;
@@ -30,8 +31,16 @@ body.light-mode {
     --text2: rgba(0,0,0,0.6);
     --text3: rgba(0,0,0,0.3);
     --accent: #0A0A0A;
+    --accent-glow: rgba(0,0,0,0.15);
     --border: rgba(0,0,0,0.05);
 }
+
+/* ========== COLOR THEMES ========== */
+body.theme-yellow { --accent: #FFCC00; --accent-glow: rgba(255, 204, 0, 0.4); }
+body.theme-orange { --accent: #FF9500; --accent-glow: rgba(255, 149, 0, 0.4); }
+body.theme-red { --accent: #FF3B30; --accent-glow: rgba(255, 59, 48, 0.4); }
+body.theme-blue { --accent: #007AFF; --accent-glow: rgba(0, 122, 255, 0.4); }
+body.theme-green { --accent: #34C759; --accent-glow: rgba(52, 199, 89, 0.4); }
 
 body.light-mode .bottom-nav {
     background: rgba(255, 255, 255, 0.85);
@@ -225,11 +234,12 @@ body:has(#pageAI.active) #pageCalendar {
     letter-spacing: -0.4px;
 }
 .header-today-badge {
-    background: var(--text); color: var(--bg);
+    background: var(--accent); color: var(--bg);
     padding: 3px 10px; border-radius: 20px;
     font-size: 11px; font-weight: 600;
     cursor: pointer;
     transition: all 0.15s ease;
+    box-shadow: 0 0 10px var(--accent-glow);
 }
 .header-today-badge:active { transform: scale(0.93); opacity: 0.8; }
 
@@ -313,17 +323,18 @@ body:has(#pageAI.active) #pageCalendar {
 .cal-day.other-month { color: var(--text3); }
 
 .cal-day.today {
-    background: rgba(255,255,255,0.06);
-    color: var(--text);
+    background: var(--accent-glow);
+    color: var(--accent);
     font-weight: 700;
 }
 .cal-day.selected {
     background: var(--surface2);
-    color: var(--text);
+    color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent-glow);
 }
 .cal-day.today.selected {
-    background: rgba(255,255,255,0.12);
-    color: var(--text);
+    background: var(--accent);
+    color: var(--bg);
 }
 
 .cal-day-events {
@@ -398,8 +409,9 @@ body:has(#pageAI.active) #pageCalendar {
     transition: all 0.2s ease;
 }
 .week-day-number.today {
-    background: var(--text);
+    background: var(--accent);
     color: var(--bg);
+    box-shadow: 0 4px 12px var(--accent-glow);
 }
 
 .week-day-content {
@@ -452,7 +464,7 @@ body:has(#pageAI.active) #pageCalendar {
 }
 .day-view-header {
     margin-bottom: 32px;
-    border-left: 4px solid var(--text);
+    border-left: 4px solid var(--accent);
     padding-left: 16px;
 }
 .day-view-big-date {
@@ -460,7 +472,8 @@ body:has(#pageAI.active) #pageCalendar {
     font-weight: 800;
     letter-spacing: -2px;
     line-height: 0.9;
-    color: var(--text);
+    color: var(--accent);
+    text-shadow: 0 4px 20px var(--accent-glow);
 }
 .day-view-day-name {
     font-size: 20px;
@@ -557,17 +570,18 @@ body:has(#pageAI.active) #pageCalendar {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    margin: 8px 20px 16px;
+    margin: 8px 20px 24px;
     padding: 12px;
-    background: var(--surface3);
+    background: var(--accent);
     border: none;
     border-radius: 12px;
-    color: var(--text);
+    color: var(--bg);
     font-size: 14px;
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
     transition: all 0.15s;
+    box-shadow: 0 4px 12px var(--accent-glow);
 }
 .day-detail-add-btn:active {
     background: var(--surface2);
@@ -693,7 +707,7 @@ body:has(#pageAI.active) #pageCalendar {
     border-radius: 12px;
 }
 
-.nav-item.active { color: var(--text); }
+.nav-item.active { color: var(--accent); }
 .nav-icon {
     position: relative;
     transition: transform 0.2s ease;
@@ -754,8 +768,8 @@ body:has(#pageAI.active) #pageCalendar {
     border: 1px solid var(--border);
 }
 .modal-save-btn { 
-    background: var(--surface3); 
-    color: var(--text); 
+    background: var(--accent); 
+    color: var(--bg); 
 }
 .modal-cancel-btn:active, .modal-save-btn:active {
     transform: scale(0.96);
@@ -784,7 +798,8 @@ body:has(#pageAI.active) #pageCalendar {
     appearance: none;
 }
 .form-input:focus, .form-textarea:focus {
-    border-color: rgba(255,255,255,0.2);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
 }
 .form-textarea { resize: none; }
 .form-row { display: flex; gap: 10px; }
@@ -801,8 +816,8 @@ body:has(#pageAI.active) #pageCalendar {
     padding: 0;
 }
 .color-dot.active {
-    border-color: var(--text);
-    box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
 }
 
 /* ========== AI PAGE ========== */
@@ -865,9 +880,10 @@ body:has(#pageAI.active) #pageCalendar {
 }
 .ai-msg.user {
     align-self: flex-end;
-    background: var(--text);
+    background: var(--accent);
     color: var(--bg);
     border-bottom-right-radius: 4px;
+    box-shadow: 0 4px 12px var(--accent-glow);
 }
 .ai-msg.bot {
     align-self: flex-start;
@@ -904,12 +920,13 @@ body:has(#pageAI.active) #pageCalendar {
 .ai-input::placeholder { color: var(--text3); }
 .ai-send-btn {
     width: 34px; height: 34px; border-radius: 50%;
-    background: var(--text); color: var(--bg);
+    background: var(--accent); color: var(--bg);
     border: none;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     transition: all 0.15s;
     flex-shrink: 0;
+    box-shadow: 0 2px 8px var(--accent-glow);
 }
 .ai-send-btn:active { transform: scale(0.88); }
 
@@ -1090,8 +1107,8 @@ body:has(#pageAI.active) #pageCalendar {
     transition: all 0.3s ease;
 }
 .toggle-switch.active::after {
-    background: var(--profile-accent, var(--text));
-    box-shadow: 0 0 12px var(--profile-accent-glow, var(--text)); /* colored glow */
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow); /* colored glow */
 }
 .toggle-knob { display: none; }
 
@@ -1149,8 +1166,8 @@ body:has(#pageAI.active) #pageCalendar {
     position: relative;
 }
 .profile-selector-item.active {
-    border-color: var(--text);
-    box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent), 0 0 15px var(--accent-glow);
 }
 .profile-selector-item:active {
     transform: scale(0.9);
@@ -1172,10 +1189,11 @@ body:has(#pageAI.active) #pageCalendar {
     appearance: none;
     width: 22px; height: 22px;
     border-radius: 50%;
-    background: var(--text);
+    background: var(--accent);
     cursor: pointer;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 8px var(--accent-glow);
     transition: transform 0.15s;
+    border: 2px solid var(--bg);
 }
 .urgency-slider::-webkit-slider-thumb:active {
     transform: scale(1.15);
@@ -1183,10 +1201,10 @@ body:has(#pageAI.active) #pageCalendar {
 .urgency-slider::-moz-range-thumb {
     width: 22px; height: 22px;
     border-radius: 50%;
-    background: var(--text);
+    background: var(--accent);
     cursor: pointer;
-    border: none;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    border: 2px solid var(--bg);
+    box-shadow: 0 2px 8px var(--accent-glow);
 }
 .urgency-value {
     float: right;
@@ -1366,7 +1384,7 @@ body:has(#pageAI.active) #pageCalendar {
 .whatsnew-dismiss-btn {
     width: 100%;
     padding: 16px;
-    background: var(--text);
+    background: var(--accent);
     color: var(--bg);
     border: none;
     border-radius: 16px;
@@ -1375,6 +1393,7 @@ body:has(#pageAI.active) #pageCalendar {
     cursor: pointer;
     transition: all 0.2s;
     font-family: inherit;
+    box-shadow: 0 4px 15px var(--accent-glow);
 }
 .whatsnew-dismiss-btn:active {
     transform: scale(0.97);
@@ -1421,4 +1440,30 @@ body:has(#pageAI.active) #pageCalendar {
     .ai-input-bar {
         max-width: 398px;
     }
+}
+
+/* ========== ACCENT PICKER STYLES ========== */
+.accent-picker {
+    display: flex;
+    gap: 12px;
+    padding: 8px 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.accent-dot {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid transparent;
+    flex-shrink: 0;
+    position: relative;
+}
+.accent-dot.active {
+    transform: scale(1.15);
+    border-color: var(--text);
+    box-shadow: 0 0 0 2px var(--bg), 0 0 15px var(--accent-glow);
+}
+.accent-dot:active {
+    transform: scale(0.9);
 }

@@ -17,6 +17,8 @@ const state = {
     colorBinding: JSON.parse(localStorage.getItem('muzi_color_binding') || 'true'),
     visibleProfileIds: JSON.parse(localStorage.getItem('muzi_visible_profiles') || '[]'),
     editingProfileId: null, // target for editing in modal
+    // Design
+    currentTheme: localStorage.getItem('muzi_theme') || 'default',
     // Event modal state
     eventProfileId: null,  // which profile to assign a new event to
     eventUrgency: 100,
@@ -1107,6 +1109,32 @@ $('toggleDarkMode')?.addEventListener('click', function() {
     localStorage.setItem('muzi_dark_mode', isDark);
 });
 
+// Accent Color Theme
+function applyTheme(theme) {
+    state.currentTheme = theme;
+    // Remove all theme classes
+    document.body.classList.forEach(cls => {
+        if (cls.startsWith('theme-')) document.body.classList.remove(cls);
+    });
+    // Add new theme class if not default
+    if (theme !== 'default') {
+        document.body.classList.add(`theme-${theme}`);
+    }
+    
+    // Update active dot
+    $$('#accentPicker .accent-dot').forEach(dot => {
+        dot.classList.toggle('active', dot.dataset.theme === theme);
+    });
+    
+    localStorage.setItem('muzi_theme', theme);
+}
+
+$$('#accentPicker .accent-dot').forEach(dot => {
+    dot.addEventListener('click', () => {
+        applyTheme(dot.dataset.theme);
+    });
+});
+
 // Shared View toggle
 $('toggleSharedView')?.addEventListener('click', function() {
     this.classList.toggle('active');
@@ -1328,6 +1356,9 @@ function init() {
     }
     document.body.classList.toggle('light-mode', !isDark);
 
+    // Restore accent theme
+    applyTheme(state.currentTheme);
+
     // Restore profile edit colors from active profile
     state.profileEditColor = state.profile.color;
     state.profileEditImage = state.profile.image;
@@ -1441,7 +1472,7 @@ $('onboardingSaveBtn')?.addEventListener('click', () => {
 });
 
 // ===== WHAT'S NEW / CHANGELOG =====
-const APP_VERSION = '1.3';
+const APP_VERSION = '1.4';
 
 const CHANGELOG = [
     {
@@ -1521,6 +1552,21 @@ const CHANGELOG = [
                 icon: '👥',
                 title: 'Verbesserte Ansicht',
                 desc: 'Du kannst jetzt in den Einstellungen genau festlegen, ob du nur deine eigenen oder die Termine aller Familienmitglieder sehen möchtest.'
+            }
+        ]
+    },
+    {
+        version: '1.4',
+        features: [
+            {
+                icon: '🎨',
+                title: 'Eigene Akzentfarben',
+                desc: 'Wähle jetzt deine Lieblingsfarbe als Akzent für die gesamte App – Gelb, Orange, Rot, Blau oder Grün.'
+            },
+            {
+                icon: '✨',
+                title: 'Premium Design',
+                desc: 'Verfeinerte Animationen und passend abgestimmte Farben für ein noch edleres Erlebnis.'
             }
         ]
     }
