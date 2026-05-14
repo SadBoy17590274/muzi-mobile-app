@@ -81,8 +81,22 @@ function getEventDisplayColor(ev) {
     const profile = getProfileById(ev.profileId);
     const baseColor = state.colorBinding ? profile.color : (ev.color || profile.color);
     const urgency = ev.urgency != null ? ev.urgency : 100;
+    
+    // Krasser Unterschied für Dringlichkeit
     const opacity = Math.max(0.15, urgency / 100);
-    return { color: baseColor, opacity, initial: profile.name.charAt(0).toUpperCase() || '?', profileColor: profile.color };
+    const barWidth = Math.max(20, urgency) + '%';
+    const isImportant = urgency >= 80;
+    const glow = isImportant ? `box-shadow: 0 0 8px ${hexToRgba(baseColor, 0.6)};` : '';
+    
+    return { 
+        color: baseColor, 
+        opacity, 
+        width: barWidth,
+        glow,
+        initial: profile.name.charAt(0).toUpperCase() || '?', 
+        profileColor: profile.color,
+        urgency
+    };
 }
 
 function hexToRgba(hex, alpha) {
@@ -257,7 +271,7 @@ function renderEventIndicator(evts) {
     const bars = evts.slice(0, 3).map(e => {
         const d = getEventDisplayColor(e);
         const bgColor = hexToRgba(d.color, d.opacity);
-        return `<div class="cal-day-bar" style="background:${bgColor}"></div>`;
+        return `<div class="cal-day-bar" style="background:${bgColor}; width:${d.width}; ${d.glow}"></div>`;
     }).join('');
     const badge = evts.length >= 3
         ? `<div class="cal-day-badge">${evts.length}</div>`
@@ -269,7 +283,7 @@ function renderEventIndicator(evts) {
             return `<span class="event-initial-badge" style="background:${d.profileColor}">${d.initial}</span>`;
         }).join('')
         : '';
-    return `<div class="cal-day-events">${bars}</div>${initials ? `<div class="cal-day-events" style="flex-direction:row;gap:2px;justify-content:center;bottom:auto;top:2px">${initials}</div>` : ''}${badge}`;
+    return `<div class="cal-day-events" style="align-items:center;">${bars}</div>${initials ? `<div class="cal-day-events" style="flex-direction:row;gap:2px;justify-content:center;bottom:auto;top:2px">${initials}</div>` : ''}${badge}`;
 }
 
 function renderCalendar() {
@@ -368,8 +382,8 @@ function renderWeekView() {
                         return `
                         <div class="week-event-card">
                             <span class="event-initial-badge" style="background:${d.profileColor}">${d.initial}</span>
-                            <div class="week-event-color" style="background:${barColor}"></div>
-                            <div class="week-event-info">
+                            <div class="week-event-color" style="background:${barColor}; ${d.glow}"></div>
+                            <div class="week-event-info" style="opacity:${Math.max(0.4, ev.urgency / 100)}">
                                 <div class="week-event-title">${ev.title}</div>
                                 <div class="week-event-time">${ev.startTime} – ${ev.endTime}</div>
                             </div>
@@ -417,8 +431,8 @@ function renderDayView() {
                     return `
                     <div class="event-card">
                         <span class="event-initial-badge" style="background:${dc.profileColor}">${dc.initial}</span>
-                        <div class="event-color-bar" style="background:${barColor}"></div>
-                        <div class="event-card-content">
+                        <div class="event-color-bar" style="background:${barColor}; ${dc.glow}"></div>
+                        <div class="event-card-content" style="opacity:${Math.max(0.4, ev.urgency / 100)}">
                             <div class="event-card-title">${ev.title}</div>
                             <div class="event-card-time">${ev.startTime} – ${ev.endTime}</div>
                         </div>
@@ -506,8 +520,8 @@ function openDayDetail() {
             return `
             <div class="event-card" style="animation-delay:${i * 0.05}s">
                 <span class="event-initial-badge" style="background:${d.profileColor}">${d.initial}</span>
-                <div class="event-color-bar" style="background:${barColor}"></div>
-                <div class="event-card-content">
+                <div class="event-color-bar" style="background:${barColor}; ${d.glow}"></div>
+                <div class="event-card-content" style="opacity:${Math.max(0.4, ev.urgency / 100)}">
                     <div class="event-card-title">${ev.title}</div>
                     <div class="event-card-time">${ev.startTime} – ${ev.endTime}</div>
                 </div>
