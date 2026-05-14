@@ -226,6 +226,32 @@
                         </div>
                         <span class="profile-option-value">Montag</span>
                     </div>
+                    <div class="profile-option">
+                        <div class="profile-option-left">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            <span>Gemeinsame Ansicht</span>
+                        </div>
+                        <div class="toggle-switch" id="toggleSharedView">
+                            <div class="toggle-knob"></div>
+                        </div>
+                    </div>
+                    <div class="profile-option">
+                        <div class="profile-option-left">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+                            <span>Farb-Bindung</span>
+                        </div>
+                        <div class="toggle-switch active" id="toggleColorBinding">
+                            <div class="toggle-knob"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile Management Section -->
+                <div class="profile-section">
+                    <h3 class="profile-section-title">Profile verwalten</h3>
+                    <div class="settings-profile-list" id="settingsProfileList">
+                        <!-- Rendered by JS -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -298,6 +324,15 @@
                 <div class="form-group">
                     <input type="text" class="form-input" id="eventTitle" placeholder="Titel" autocomplete="off">
                 </div>
+
+                <!-- Profile Selector -->
+                <div class="form-group">
+                    <label class="form-label">Zuweisen an</label>
+                    <div class="profile-selector" id="eventProfileSelector">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label class="form-label">Datum</label>
                     <input type="date" class="form-input" id="eventDate">
@@ -312,7 +347,19 @@
                         <input type="time" class="form-input" id="eventEndTime" value="10:00">
                     </div>
                 </div>
+
+                <!-- Urgency Slider -->
                 <div class="form-group">
+                    <label class="form-label">Dringlichkeit <span class="urgency-value" id="urgencyValue">100%</span></label>
+                    <input type="range" class="urgency-slider" id="eventUrgency" min="0" max="100" value="100">
+                    <div class="urgency-labels">
+                        <span>Flexibel</span>
+                        <span>Fix / Wichtig</span>
+                    </div>
+                </div>
+
+                <!-- Free Color Picker (hidden when color binding is on) -->
+                <div class="form-group" id="freeColorGroup">
                     <label class="form-label">Farbe</label>
                     <div class="color-picker" id="colorPicker">
                         <div class="color-dot active" data-color="#FFFFFF" style="background:#FFFFFF; border: 1px solid rgba(255,255,255,0.3)"></div>
@@ -324,6 +371,7 @@
                         <div class="color-dot" data-color="#bf5af2" style="background:#bf5af2"></div>
                     </div>
                 </div>
+
                 <div class="form-group">
                     <label class="form-label">Notizen</label>
                     <textarea class="form-textarea" id="eventNotes" placeholder="Notizen hinzufügen..." rows="3"></textarea>
@@ -415,6 +463,24 @@
                 </div>
                 
                 <button id="onboardingSaveBtn" style="width: 100%; padding: 16px; background: var(--text); color: var(--bg); border: none; border-radius: 16px; font-weight: 700; font-size: 17px; cursor: pointer; transition: all 0.2s;">Profil erstellen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- What's New Modal -->
+    <div class="modal-overlay" id="whatsNewOverlay">
+        <div class="modal" id="whatsNewModal" style="border-radius: 28px;">
+            <div class="modal-handle"></div>
+            <div class="modal-body" style="padding-top: 24px; padding-bottom: 32px;">
+                <div class="whatsnew-header">
+                    <div class="whatsnew-icon">✨</div>
+                    <h2 class="whatsnew-title">Was ist neu?</h2>
+                    <span class="whatsnew-version" id="whatsNewVersion">v1.2</span>
+                </div>
+                <div class="whatsnew-content" id="whatsNewContent">
+                    <!-- Rendered by JS -->
+                </div>
+                <button class="whatsnew-dismiss-btn" id="whatsNewDismissBtn">Verstanden!</button>
             </div>
         </div>
     </div>

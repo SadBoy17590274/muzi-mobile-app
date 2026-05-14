@@ -7,11 +7,17 @@ const state = {
     currentView: 'month',
     currentPage: 'pageCalendar',
     events: JSON.parse(localStorage.getItem('muzi_events') || '[]'),
-    profiles: JSON.parse(localStorage.getItem('muzi_profiles_v2') || '[{"id":"1","name":"Muzi Nutzer","color":"#34C759","image":""}]'),
-    activeProfileId: localStorage.getItem('muzi_active_profile_v2') || '1',
+    profiles: JSON.parse(localStorage.getItem('muzi_profiles_v3') || '[{"id":"1","name":"Muzi Nutzer","color":"#34C759","image":""}]'),
+    activeProfileId: localStorage.getItem('muzi_active_profile_v3') || '1',
     selectedColor: '#FFFFFF',
     profileEditColor: '#34C759',
     profileEditImage: '',
+    // Settings
+    sharedView: JSON.parse(localStorage.getItem('muzi_shared_view') || 'false'),
+    colorBinding: JSON.parse(localStorage.getItem('muzi_color_binding') || 'true'),
+    // Event modal state
+    eventProfileId: null,  // which profile to assign a new event to
+    eventUrgency: 100,
     get profile() { return this.profiles.find(p => p.id === this.activeProfileId) || this.profiles[0]; }
 };
 
@@ -61,7 +67,29 @@ function isEventForActiveProfile(e) {
 
 function getEventsForDate(date) {
     const ds = formatDate(date);
+    if (state.sharedView) {
+        return state.events.filter(e => e.date === ds);
+    }
     return state.events.filter(e => e.date === ds && isEventForActiveProfile(e));
+}
+
+function getProfileById(id) {
+    return state.profiles.find(p => String(p.id) === String(id)) || state.profiles[0];
+}
+
+function getEventDisplayColor(ev) {
+    const profile = getProfileById(ev.profileId);
+    const baseColor = state.colorBinding ? profile.color : (ev.color || profile.color);
+    const urgency = ev.urgency != null ? ev.urgency : 100;
+    const opacity = Math.max(0.15, urgency / 100);
+    return { color: baseColor, opacity, initial: profile.name.charAt(0).toUpperCase() || '?', profileColor: profile.color };
+}
+
+function hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1,3), 16);
+    const g = parseInt(hex.slice(3,5), 16);
+    const b = parseInt(hex.slice(5,7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
 }
 
 function saveEvents() {
@@ -71,14 +99,15 @@ function saveEvents() {
 
 function saveProfile() {
     try {
-        localStorage.setItem('muzi_profiles_v2', JSON.stringify(state.profiles));
-        localStorage.setItem('muzi_active_profile_v2', state.activeProfileId);
+        localStorage.setItem('muzi_profiles_v3', JSON.stringify(state.profiles));
+        localStorage.setItem('muzi_active_profile_v3', state.activeProfileId);
     } catch (e) {
         console.error('Fehler beim Speichern des Profils:', e);
         alert('Speicherlimit erreicht! Bitte lösche einige Bilder oder verwende kleinere Bilder.');
     }
     updateProfileUI();
     renderCalendar();
+    if (typeof renderSettingsProfileList === 'function') renderSettingsProfileList();
 }
 
 function updateProfileUI() {
@@ -225,13 +254,22 @@ $$('.nav-item').forEach(btn => {
 // ===== CALENDAR RENDERING =====
 function renderEventIndicator(evts) {
     if (!evts.length) return '';
-    const bars = evts.slice(0, 3).map(e =>
-        `<div class="cal-day-bar" style="background:${e.color}"></div>`
-    ).join('');
+    const bars = evts.slice(0, 3).map(e => {
+        const d = getEventDisplayColor(e);
+        const bgColor = hexToRgba(d.color, d.opacity);
+        return `<div class="cal-day-bar" style="background:${bgColor}"></div>`;
+    }).join('');
     const badge = evts.length >= 3
         ? `<div class="cal-day-badge">${evts.length}</div>`
         : '';
-    return `<div class="cal-day-events">${bars}</div>${badge}`;
+    // Show initials if shared view is on
+    const initials = state.sharedView && evts.length <= 3
+        ? evts.slice(0, 3).map(e => {
+            const d = getEventDisplayColor(e);
+            return `<span class="event-initial-badge" style="background:${d.profileColor}">${d.initial}</span>`;
+        }).join('')
+        : '';
+    return `<div class="cal-day-events">${bars}</div>${initials ? `<div class="cal-day-events" style="flex-direction:row;gap:2px;justify-content:center;bottom:auto;top:2px">${initials}</div>` : ''}${badge}`;
 }
 
 function renderCalendar() {
@@ -324,15 +362,19 @@ function renderWeekView() {
                     <span class="week-day-number ${isToday ? 'today' : ''}">${date.getDate()}</span>
                 </div>
                 <div class="week-day-content">
-                    ${evts.length ? evts.map(ev => `
+                    ${evts.length ? evts.map(ev => {
+                        const d = getEventDisplayColor(ev);
+                        const barColor = hexToRgba(d.color, d.opacity);
+                        return `
                         <div class="week-event-card">
-                            <div class="week-event-color" style="background:${ev.color}"></div>
+                            <span class="event-initial-badge" style="background:${d.profileColor}">${d.initial}</span>
+                            <div class="week-event-color" style="background:${barColor}"></div>
                             <div class="week-event-info">
                                 <div class="week-event-title">${ev.title}</div>
                                 <div class="week-event-time">${ev.startTime} – ${ev.endTime}</div>
                             </div>
-                        </div>
-                    `).join('') : '<div class="week-empty-state">Keine Termine</div>'}
+                        </div>`;
+                    }).join('') : '<div class="week-empty-state">Keine Termine</div>'}
                 </div>
             </div>
         `;
@@ -369,15 +411,19 @@ function renderDayView() {
                 <div class="day-view-day-name">${DAYS[d.getDay()]}</div>
             </div>
             <div class="day-view-list">
-                ${events.length ? events.map(ev => `
+                ${events.length ? events.map(ev => {
+                    const dc = getEventDisplayColor(ev);
+                    const barColor = hexToRgba(dc.color, dc.opacity);
+                    return `
                     <div class="event-card">
-                        <div class="event-color-bar" style="background:${ev.color}"></div>
+                        <span class="event-initial-badge" style="background:${dc.profileColor}">${dc.initial}</span>
+                        <div class="event-color-bar" style="background:${barColor}"></div>
                         <div class="event-card-content">
                             <div class="event-card-title">${ev.title}</div>
                             <div class="event-card-time">${ev.startTime} – ${ev.endTime}</div>
                         </div>
-                    </div>
-                `).join('') : '<div class="empty-state"><p>Keine Termine</p></div>'}
+                    </div>`;
+                }).join('') : '<div class="empty-state"><p>Keine Termine</p></div>'}
             </div>
         </div>
     `;
@@ -454,9 +500,13 @@ function openDayDetail() {
         list.innerHTML = `<div class="empty-state"><p>Keine Termine</p><span>Tippe unten um einen Termin zu erstellen</span></div>`;
     } else {
         events.sort((a, b) => a.startTime.localeCompare(b.startTime));
-        list.innerHTML = events.map((ev, i) => `
+        list.innerHTML = events.map((ev, i) => {
+            const d = getEventDisplayColor(ev);
+            const barColor = hexToRgba(d.color, d.opacity);
+            return `
             <div class="event-card" style="animation-delay:${i * 0.05}s">
-                <div class="event-color-bar" style="background:${ev.color}"></div>
+                <span class="event-initial-badge" style="background:${d.profileColor}">${d.initial}</span>
+                <div class="event-color-bar" style="background:${barColor}"></div>
                 <div class="event-card-content">
                     <div class="event-card-title">${ev.title}</div>
                     <div class="event-card-time">${ev.startTime} – ${ev.endTime}</div>
@@ -464,7 +514,8 @@ function openDayDetail() {
                 <button class="event-card-delete" data-id="${ev.id}">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 </button>
-            </div>`).join('');
+            </div>`;
+        }).join('');
 
         list.querySelectorAll('.event-card-delete').forEach(btn => {
             btn.addEventListener('click', e => {
@@ -513,6 +564,32 @@ $$('.view-btn').forEach(btn => {
 });
 
 // ===== EVENT MODAL =====
+function renderEventProfileSelector() {
+    const container = $('eventProfileSelector');
+    if (!container) return;
+    container.innerHTML = state.profiles.map(p => {
+        const isActive = p.id === state.eventProfileId;
+        const avatarStyle = p.image
+            ? `background-image:url(${p.image});background-size:cover;background-position:center;`
+            : `background-color:${p.color};`;
+        const initial = p.image ? '' : (p.name.charAt(0).toUpperCase() || '?');
+        return `<div class="profile-selector-item ${isActive ? 'active' : ''}" data-profile-id="${p.id}" style="${avatarStyle}">${initial}</div>`;
+    }).join('');
+
+    container.querySelectorAll('.profile-selector-item').forEach(item => {
+        item.addEventListener('click', () => {
+            state.eventProfileId = item.dataset.profileId;
+            container.querySelectorAll('.profile-selector-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            // If color binding is on, auto-select the profile's color
+            if (state.colorBinding) {
+                const profile = getProfileById(state.eventProfileId);
+                state.selectedColor = profile.color;
+            }
+        });
+    });
+}
+
 function openModal() {
     els.modalOverlay.classList.add('open');
     els.eventTitle.value = '';
@@ -520,8 +597,28 @@ function openModal() {
     els.eventStart.value = '09:00';
     els.eventEnd.value = '10:00';
     els.eventNotes.value = '';
-    state.selectedColor = '#FFFFFF';
-    $$('.color-dot').forEach(d => d.classList.toggle('active', d.dataset.color === '#FFFFFF'));
+    state.eventProfileId = state.activeProfileId;
+    state.eventUrgency = 100;
+    state.selectedColor = state.colorBinding ? state.profile.color : '#FFFFFF';
+
+    // Render profile selector
+    renderEventProfileSelector();
+
+    // Setup urgency slider
+    const urgSlider = $('eventUrgency');
+    const urgValue = $('urgencyValue');
+    if (urgSlider) {
+        urgSlider.value = 100;
+        urgValue.textContent = '100%';
+    }
+
+    // Show/hide free color picker based on color binding setting
+    const freeColorGroup = $('freeColorGroup');
+    if (freeColorGroup) {
+        freeColorGroup.style.display = state.colorBinding ? 'none' : 'block';
+    }
+
+    $$('#colorPicker .color-dot').forEach(d => d.classList.toggle('active', d.dataset.color === state.selectedColor));
     setTimeout(() => els.eventTitle.focus(), 400);
 }
 
@@ -535,13 +632,19 @@ els.modalOverlay.addEventListener('click', e => {
     if (e.target === els.modalOverlay) closeModal();
 });
 
-// Color picker
-$$('.color-dot').forEach(dot => {
+// Color picker (free color group)
+$$('#colorPicker .color-dot').forEach(dot => {
     dot.addEventListener('click', () => {
         state.selectedColor = dot.dataset.color;
-        $$('.color-dot').forEach(d => d.classList.remove('active'));
+        $$('#colorPicker .color-dot').forEach(d => d.classList.remove('active'));
         dot.classList.add('active');
     });
+});
+
+// Urgency slider
+$('eventUrgency')?.addEventListener('input', function() {
+    state.eventUrgency = parseInt(this.value);
+    $('urgencyValue').textContent = this.value + '%';
 });
 
 // Save event
@@ -549,15 +652,19 @@ $('modalSaveBtn').addEventListener('click', () => {
     const title = els.eventTitle.value.trim();
     if (!title) { els.eventTitle.focus(); return; }
 
+    const assignedProfile = getProfileById(state.eventProfileId);
+    const finalColor = state.colorBinding ? assignedProfile.color : state.selectedColor;
+
     const event = {
         id: Date.now().toString(36) + Math.random().toString(36).slice(2),
         title,
         date: els.eventDate.value,
         startTime: els.eventStart.value,
         endTime: els.eventEnd.value,
-        color: state.selectedColor,
+        color: finalColor,
+        urgency: state.eventUrgency,
         notes: els.eventNotes.value.trim(),
-        profileId: state.activeProfileId
+        profileId: state.eventProfileId
     };
 
     state.events.push(event);
@@ -668,6 +775,56 @@ $('toggleDarkMode')?.addEventListener('click', function() {
     document.body.classList.toggle('light-mode', !isDark);
     localStorage.setItem('muzi_dark_mode', isDark);
 });
+
+// Shared View toggle
+$('toggleSharedView')?.addEventListener('click', function() {
+    this.classList.toggle('active');
+    state.sharedView = this.classList.contains('active');
+    localStorage.setItem('muzi_shared_view', JSON.stringify(state.sharedView));
+    renderCalendar();
+});
+
+// Color Binding toggle
+$('toggleColorBinding')?.addEventListener('click', function() {
+    this.classList.toggle('active');
+    state.colorBinding = this.classList.contains('active');
+    localStorage.setItem('muzi_color_binding', JSON.stringify(state.colorBinding));
+    renderCalendar();
+});
+
+// ===== SETTINGS PROFILE LIST =====
+function renderSettingsProfileList() {
+    const list = $('settingsProfileList');
+    if (!list) return;
+
+    list.innerHTML = state.profiles.map(p => {
+        const avatarStyle = p.image
+            ? `background-image:url(${p.image});background-size:cover;background-position:center;`
+            : `background-color:${p.color};`;
+        const initial = p.image ? '' : (p.name.charAt(0).toUpperCase() || '?');
+        return `
+        <div class="settings-profile-item" data-edit-profile-id="${p.id}">
+            <div class="settings-profile-avatar" style="${avatarStyle}">${initial}</div>
+            <div class="settings-profile-info">
+                <div class="settings-profile-name">${p.name}</div>
+                <div class="settings-profile-color-hint">
+                    <span class="settings-profile-color-dot" style="background:${p.color}"></span>
+                    ${p.color}
+                </div>
+            </div>
+            <svg class="settings-profile-edit-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>`;
+    }).join('');
+
+    list.querySelectorAll('.settings-profile-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const profileId = item.dataset.editProfileId;
+            state.activeProfileId = profileId;
+            saveProfile();
+            $('editProfileBtn')?.click();
+        });
+    });
+}
 
 
 // ===== PROFILE EDIT MODAL =====
@@ -788,14 +945,22 @@ function init() {
     state.profileEditColor = state.profile.color;
     state.profileEditImage = state.profile.image;
 
+    // Restore settings toggles
+    const sharedViewToggle = $('toggleSharedView');
+    if (sharedViewToggle) sharedViewToggle.classList.toggle('active', state.sharedView);
+    const colorBindingToggle = $('toggleColorBinding');
+    if (colorBindingToggle) colorBindingToggle.classList.toggle('active', state.colorBinding);
+
     renderCalendar();
     updateStats();
     updateProfileUI();
+    renderSettingsProfileList();
+
     // Hide AI input bar initially
     const aiBar = document.querySelector('.ai-input-bar');
     if (aiBar) aiBar.style.display = 'none';
 
-    if (!localStorage.getItem('muzi_first_open_done_v2')) {
+    if (!localStorage.getItem('muzi_first_open_done_v3')) {
         const onboardingOverlay = $('onboardingOverlay');
         if (onboardingOverlay) {
             onboardingOverlay.classList.add('open');
@@ -880,6 +1045,125 @@ $('onboardingSaveBtn')?.addEventListener('click', () => {
         state.profiles[0].image = onboardingImage;
         saveProfile();
     }
-    localStorage.setItem('muzi_first_open_done_v2', 'true');
+    localStorage.setItem('muzi_first_open_done_v3', 'true');
+    localStorage.setItem('muzi_last_seen_version', APP_VERSION);
     $('onboardingOverlay').classList.remove('open');
 });
+
+// ===== WHAT'S NEW / CHANGELOG =====
+const APP_VERSION = '1.2';
+
+const CHANGELOG = [
+    {
+        version: '1.0',
+        features: [
+            {
+                icon: '📅',
+                title: 'Dein neuer Kalender',
+                desc: 'Monats-, Wochen- und Tagesansicht mit elegantem Dark Mode. Wische nach links/rechts um zwischen Monaten zu navigieren.'
+            },
+            {
+                icon: '🤖',
+                title: 'Muzi AI Assistent',
+                desc: 'Dein intelligenter Helfer – frag nach Terminen oder lass dir deine Woche zusammenfassen.'
+            },
+            {
+                icon: '🔍',
+                title: 'Termin-Suche',
+                desc: 'Durchsuche all deine Termine blitzschnell nach Titel oder Notizen.'
+            }
+        ]
+    },
+    {
+        version: '1.1',
+        features: [
+            {
+                icon: '👤',
+                title: 'Profil-System',
+                desc: 'Erstelle mehrere Profile für dich und deine Familie. Jedes Profil hat seinen eigenen Namen, Farbe und Avatar.'
+            },
+            {
+                icon: '🎨',
+                title: 'Personalisiertes Onboarding',
+                desc: 'Beim ersten Start richtest du dein Profil mit Name, Farbe und optional einem Profilbild ein.'
+            }
+        ]
+    },
+    {
+        version: '1.2',
+        features: [
+            {
+                icon: '🎯',
+                title: 'Termine zuweisen',
+                desc: 'Weise Termine direkt einem Familienmitglied zu. Farbige Initialen zeigen sofort, wem ein Termin gehört.'
+            },
+            {
+                icon: '🔥',
+                title: 'Dringlichkeits-Stufen',
+                desc: 'Neuer Slider beim Erstellen: 100% = fix & wichtig (volle Farbe), niedrigere Werte = flexibler Termin (blassere Farbe).'
+            },
+            {
+                icon: '👨‍👩‍👧‍👦',
+                title: 'Gemeinsame Ansicht',
+                desc: 'In den Einstellungen aktivierbar – zeigt die Termine aller Profile gleichzeitig mit farbigen Initial-Badges.'
+            },
+            {
+                icon: '🎨',
+                title: 'Farb-Bindung',
+                desc: 'Neuer Toggle: Termine nutzen automatisch die Profilfarbe. Oder deaktiviere ihn für völlig freie Farbwahl.'
+            },
+            {
+                icon: '⚙️',
+                title: 'Profile verwalten',
+                desc: 'Alle Profile jetzt direkt in den Einstellungen bearbeitbar – Name, Farbe und Initialen jederzeit anpassen.'
+            }
+        ]
+    }
+];
+
+function showWhatsNew() {
+    const lastSeen = localStorage.getItem('muzi_last_seen_version') || '0';
+    if (!localStorage.getItem('muzi_first_open_done_v3')) return;
+    if (lastSeen === APP_VERSION) return;
+
+    const newFeatures = [];
+    let latestVersion = APP_VERSION;
+    CHANGELOG.forEach(entry => {
+        if (entry.version > lastSeen) {
+            entry.features.forEach(f => newFeatures.push(f));
+            latestVersion = entry.version;
+        }
+    });
+
+    if (newFeatures.length === 0) return;
+
+    $('whatsNewVersion').textContent = 'v' + latestVersion;
+
+    const content = $('whatsNewContent');
+    content.innerHTML = newFeatures.map((f, i) => `
+        <div class="whatsnew-item" style="animation-delay: ${0.1 + i * 0.08}s">
+            <div class="whatsnew-item-icon">${f.icon}</div>
+            <div class="whatsnew-item-text">
+                <div class="whatsnew-item-title">${f.title}</div>
+                <div class="whatsnew-item-desc">${f.desc}</div>
+            </div>
+        </div>
+    `).join('');
+
+    $('whatsNewOverlay').classList.add('open');
+}
+
+$('whatsNewDismissBtn')?.addEventListener('click', () => {
+    localStorage.setItem('muzi_last_seen_version', APP_VERSION);
+    $('whatsNewOverlay').classList.remove('open');
+});
+
+$('whatsNewOverlay')?.addEventListener('click', e => {
+    if (e.target === $('whatsNewOverlay')) {
+        localStorage.setItem('muzi_last_seen_version', APP_VERSION);
+        $('whatsNewOverlay').classList.remove('open');
+    }
+});
+
+setTimeout(showWhatsNew, 600);
+

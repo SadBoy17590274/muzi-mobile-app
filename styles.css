@@ -86,7 +86,7 @@ body {
     top: calc(8px + var(--safe-top));
     bottom: calc(8px + var(--safe-bottom));
     left: 8px;
-    width: 270px;
+    width: 300px;
     background: var(--surface);
     border-radius: var(--radius-xl);
     z-index: 101;
@@ -629,24 +629,23 @@ body {
 /* ========== FLOATING BOTTOM NAV (iOS Tab Bar) ========== */
 .bottom-nav {
     position: fixed;
-    bottom: calc(12px + var(--safe-bottom));
+    bottom: calc(16px + var(--safe-bottom));
     left: 50%;
     transform: translateX(-50%);
     width: auto;
-    min-width: 200px;
-    height: var(--nav-height);
+    min-width: 340px;
+    height: 56px;
     background: rgba(20, 20, 22, 0.85);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border-radius: 24px;
+    border-radius: 28px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 0 10px;
+    justify-content: space-evenly;
+    padding: 0 12px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     z-index: 50;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
 }
 
 .nav-item {
@@ -698,10 +697,10 @@ body {
 .modal-overlay.open .modal { transform: translateY(0); }
 
 .modal-handle {
-    width: 36px; height: 5px;
+    width: 48px; height: 5px;
     background: var(--surface3);
     border-radius: 3px;
-    margin: 8px auto 0;
+    margin: 10px auto 0;
 }
 .modal-header {
     display: flex; align-items: center; justify-content: space-between;
@@ -1073,6 +1072,247 @@ body {
 }
 .search-input::placeholder { color: var(--text3); }
 .search-results { }
+
+/* ========== PROFILE SELECTOR (Event Modal) ========== */
+.profile-selector {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.profile-selector-item {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+    color: #fff;
+    position: relative;
+}
+.profile-selector-item.active {
+    border-color: var(--text);
+    box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text);
+}
+.profile-selector-item:active {
+    transform: scale(0.9);
+}
+
+/* ========== URGENCY SLIDER ========== */
+.urgency-slider {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--surface2);
+    outline: none;
+    margin: 8px 0 4px;
+}
+.urgency-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--text);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    transition: transform 0.15s;
+}
+.urgency-slider::-webkit-slider-thumb:active {
+    transform: scale(1.15);
+}
+.urgency-slider::-moz-range-thumb {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--text);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+.urgency-value {
+    float: right;
+    font-weight: 600;
+    color: var(--text);
+    font-size: 12px;
+}
+.urgency-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text3);
+    margin-top: 2px;
+}
+
+/* ========== EVENT INITIAL BADGE (Calendar) ========== */
+.cal-day-bar {
+    position: relative;
+}
+.event-initial-badge {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 8px; font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+    line-height: 1;
+}
+/* Event card with initial badge */
+.event-card .event-initial-badge {
+    width: 22px; height: 22px;
+    font-size: 10px;
+}
+/* Week view event initial */
+.week-event-card .event-initial-badge {
+    width: 20px; height: 20px;
+    font-size: 9px;
+}
+
+/* ========== SETTINGS PROFILE LIST ========== */
+.settings-profile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+.settings-profile-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--surface);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.settings-profile-item:active {
+    background: var(--surface2);
+}
+.settings-profile-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+    background-size: cover;
+    background-position: center;
+}
+.settings-profile-info {
+    flex: 1;
+    min-width: 0;
+}
+.settings-profile-name {
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.settings-profile-color-hint {
+    font-size: 11px;
+    color: var(--text3);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 1px;
+}
+.settings-profile-color-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+.settings-profile-edit-icon {
+    color: var(--text3);
+    flex-shrink: 0;
+}
+
+/* ========== WHAT'S NEW MODAL ========== */
+.whatsnew-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+.whatsnew-icon {
+    font-size: 48px;
+    margin-bottom: 8px;
+    animation: whatsnewBounce 0.6s ease;
+}
+.whatsnew-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin-bottom: 6px;
+}
+.whatsnew-version {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 20px;
+    background: var(--surface2);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    letter-spacing: 0.3px;
+}
+.whatsnew-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+.whatsnew-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface2);
+    border-radius: 16px;
+    animation: slideUp 0.4s ease backwards;
+}
+.whatsnew-item-icon {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--surface3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+.whatsnew-item-text {
+    flex: 1;
+}
+.whatsnew-item-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+.whatsnew-item-desc {
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.4;
+}
+.whatsnew-dismiss-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--text);
+    color: var(--bg);
+    border: none;
+    border-radius: 16px;
+    font-weight: 700;
+    font-size: 17px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+.whatsnew-dismiss-btn:active {
+    transform: scale(0.97);
+    opacity: 0.9;
+}
+
+@keyframes whatsnewBounce {
+    0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+    50% { transform: scale(1.2) rotate(5deg); }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
 
 /* ========== ANIMATIONS ========== */
 @keyframes slideUp {
