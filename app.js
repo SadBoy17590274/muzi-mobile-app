@@ -15,10 +15,12 @@ const state = {
     // Settings
     sharedView: JSON.parse(localStorage.getItem('muzi_shared_view') || 'false'),
     colorBinding: JSON.parse(localStorage.getItem('muzi_color_binding') || 'true'),
+    visibleProfileIds: JSON.parse(localStorage.getItem('muzi_visible_profiles') || '[]'),
+    editingProfileId: null, // target for editing in modal
     // Event modal state
     eventProfileId: null,  // which profile to assign a new event to
     eventUrgency: 100,
-    get profile() { return this.profiles.find(p => p.id === this.activeProfileId) || this.profiles[0]; }
+    get profile() { return this.profiles.find(p => p.id === (this.editingProfileId || this.activeProfileId)) || this.profiles[0]; }
 };
 
 // ===== DOM REFS =====
@@ -68,7 +70,13 @@ function isEventForActiveProfile(e) {
 function getEventsForDate(date) {
     const ds = formatDate(date);
     if (state.sharedView) {
-        return state.events.filter(e => e.date === ds);
+        return state.events.filter(e => {
+            if (e.date !== ds) return false;
+            // Always show active profile events
+            if (isEventForActiveProfile(e)) return true;
+            // Show others if selected
+            return state.visibleProfileIds.includes(String(e.profileId));
+        });
     }
     return state.events.filter(e => e.date === ds && isEventForActiveProfile(e));
 }
@@ -816,26 +824,70 @@ function renderSettingsProfileList() {
             ? `background-image:url(${p.image});background-size:cover;background-position:center;`
             : `background-color:${p.color};`;
         const initial = p.image ? '' : (p.name.charAt(0).toUpperCase() || '?');
+        const isVisible = state.visibleProfileIds.includes(String(p.id));
+        const isCurrent = String(p.id) === String(state.activeProfileId);
+
         return `
         <div class="settings-profile-item" data-edit-profile-id="${p.id}">
             <div class="settings-profile-avatar" style="${avatarStyle}">${initial}</div>
             <div class="settings-profile-info">
-                <div class="settings-profile-name">${p.name}</div>
+                <div class="settings-profile-name">${p.name}${isCurrent ? ' (Ich)' : ''}</div>
                 <div class="settings-profile-color-hint">
                     <span class="settings-profile-color-dot" style="background:${p.color}"></span>
                     ${p.color}
                 </div>
             </div>
-            <svg class="settings-profile-edit-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"><polyline points="9 18 15 12 9 6"/></svg>
+            <div class="settings-profile-actions">
+                ${!isCurrent ? `
+                <div class="toggle-switch mini ${isVisible ? 'active' : ''}" data-toggle-visibility-id="${p.id}" title="Termine anzeigen">
+                    <div class="toggle-knob"></div>
+                </div>
+                ` : ''}
+                <svg class="settings-profile-edit-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
         </div>`;
     }).join('');
 
+    // Handle Item Click (Edit)
     list.querySelectorAll('.settings-profile-item').forEach(item => {
-        item.addEventListener('click', () => {
+        item.addEventListener('click', (e) => {
+            // Don't trigger edit if clicking the visibility toggle
+            if (e.target.closest('.toggle-switch.mini')) return;
+
             const profileId = item.dataset.editProfileId;
-            state.activeProfileId = profileId;
-            saveProfile();
-            $('editProfileBtn')?.click();
+            // Set as "editing" target, but keep current active profile for logic
+            state.editingProfileId = profileId; // Use a temporary state for editing
+            
+            // Populate modal with this profile's data
+            const p = getProfileById(profileId);
+            state.profileEditColor = p.color;
+            state.profileEditImage = p.image;
+            $('profileNameInput').value = p.name;
+            
+            $('profileImageRemoveBtn').style.display = p.image ? 'inline-block' : 'none';
+            updateProfileUI();
+            
+            $('profileModalOverlay').classList.add('open');
+        });
+    });
+
+    // Handle Visibility Toggle
+    list.querySelectorAll('[data-toggle-visibility-id]').forEach(toggle => {
+        toggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = String(toggle.dataset.toggleVisibilityId);
+            toggle.classList.toggle('active');
+            
+            if (toggle.classList.contains('active')) {
+                if (!state.visibleProfileIds.includes(id)) {
+                    state.visibleProfileIds.push(id);
+                }
+            } else {
+                state.visibleProfileIds = state.visibleProfileIds.filter(vid => vid !== id);
+            }
+            
+            localStorage.setItem('muzi_visible_profiles', JSON.stringify(state.visibleProfileIds));
+            renderCalendar();
         });
     });
 }
@@ -847,6 +899,7 @@ const profileImageInput = $('profileImageInput');
 const profileNameInput = $('profileNameInput');
 
 $('editProfileBtn')?.addEventListener('click', () => {
+    state.editingProfileId = null; // Default to active profile
     state.profileEditColor = state.profile.color;
     state.profileEditImage = state.profile.image;
     profileNameInput.value = state.profile.name;
@@ -865,26 +918,35 @@ $('profileModalCancelBtn')?.addEventListener('click', () => {
 });
 
 $('profileModalSaveBtn')?.addEventListener('click', () => {
-    state.profile.name = profileNameInput.value.trim() || 'Nutzer';
-    state.profile.color = state.profileEditColor;
-    state.profile.image = state.profileEditImage;
+    const target = state.profile;
+    target.name = profileNameInput.value.trim() || 'Nutzer';
+    target.color = state.profileEditColor;
+    target.image = state.profileEditImage;
     saveProfile();
+    state.editingProfileId = null;
     profileModalOverlay.classList.remove('open');
 });
 
 $('deleteProfileBtn')?.addEventListener('click', () => {
+    const targetId = state.editingProfileId || state.activeProfileId;
     if (state.profiles.length <= 1) {
         alert('Du musst mindestens ein Profil behalten.');
         return;
     }
-    state.profiles = state.profiles.filter(p => p.id !== state.activeProfileId);
-    state.activeProfileId = state.profiles[0].id;
+    state.profiles = state.profiles.filter(p => p.id !== targetId);
+    if (state.activeProfileId === targetId) {
+        state.activeProfileId = state.profiles[0].id;
+    }
     saveProfile();
+    state.editingProfileId = null;
     profileModalOverlay.classList.remove('open');
 });
 
 profileModalOverlay?.addEventListener('click', e => {
-    if (e.target === profileModalOverlay) profileModalOverlay.classList.remove('open');
+    if (e.target === profileModalOverlay) {
+        state.editingProfileId = null;
+        profileModalOverlay.classList.remove('open');
+    }
 });
 
 $$('#profileColorPicker .color-dot').forEach(dot => {
@@ -1065,7 +1127,7 @@ $('onboardingSaveBtn')?.addEventListener('click', () => {
 });
 
 // ===== WHAT'S NEW / CHANGELOG =====
-const APP_VERSION = '1.2';
+const APP_VERSION = '1.3';
 
 const CHANGELOG = [
     {
@@ -1130,6 +1192,21 @@ const CHANGELOG = [
                 icon: '⚙️',
                 title: 'Profile verwalten',
                 desc: 'Alle Profile jetzt direkt in den Einstellungen bearbeitbar – Name, Farbe und Initialen jederzeit anpassen.'
+            }
+        ]
+    },
+    {
+        version: '1.3',
+        features: [
+            {
+                icon: '🔄',
+                title: 'Profil-Reset',
+                desc: 'Alle Profile wurden einmalig zurückgesetzt, um einen sauberen Start mit den neuen Funktionen zu ermöglichen.'
+            },
+            {
+                icon: '👥',
+                title: 'Verbesserte Ansicht',
+                desc: 'Du kannst jetzt in den Einstellungen genau festlegen, ob du nur deine eigenen oder die Termine aller Familienmitglieder sehen möchtest.'
             }
         ]
     }

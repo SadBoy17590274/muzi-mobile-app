@@ -1227,6 +1227,23 @@ body {
     color: var(--text3);
     flex-shrink: 0;
 }
+.settings-profile-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.toggle-switch.mini {
+    width: 32px;
+    height: 18px;
+    padding: 2px;
+}
+.toggle-switch.mini .toggle-knob {
+    width: 14px;
+    height: 14px;
+}
+.toggle-switch.mini.active .toggle-knob {
+    transform: translateX(14px);
+}
 
 /* ========== WHAT'S NEW MODAL ========== */
 .whatsnew-header {
