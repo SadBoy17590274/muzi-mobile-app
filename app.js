@@ -92,7 +92,7 @@ function getEventDisplayColor(ev) {
     
     // Krasser Unterschied für Dringlichkeit
     const opacity = Math.max(0.15, urgency / 100);
-    const barWidth = Math.max(20, urgency) + '%';
+    const barWidth = '85%';
     const isImportant = urgency >= 80;
     const glow = isImportant ? `box-shadow: 0 0 8px ${hexToRgba(baseColor, 0.6)};` : '';
     
@@ -700,20 +700,315 @@ $('modalSaveBtn').addEventListener('click', () => {
     renderCalendar();
 });
 
-// ===== AI CHAT =====
-const aiResponses = [
-    'Ich habe deinen Kalender überprüft – heute stehen keine Termine an! 🎉',
-    'Gerne! Ich kann dir helfen, einen neuen Termin zu erstellen. Sage mir einfach wann und was.',
-    'Deine Woche sieht gut aus! Du hast bisher wenige Termine eingetragen.',
-    'Tipp: Du kannst im Kalender nach links/rechts wischen um den Monat zu wechseln! 📅',
-    'Ich bin Muzi, dein Kalender-Assistent. Ich kann Termine verwalten und dich erinnern.',
-    'Möchtest du, dass ich eine Erinnerung für morgen erstelle? Sag mir einfach die Uhrzeit!',
-];
+// ===== AI CHAT (MUZI) =====
+const aiResponses = {
+    GREETING: [
+        "Hey! Bereit, heute die Welt zu erobern? 🐾",
+        "Miau! Lass uns deine Pläne ordnen!",
+        "Schön dich zu sehen, heute wird ein produktiver Tag! ✨",
+        "Schnurr... was steht heute auf dem Programm?",
+        "Hallo! Muzi meldet sich zum Dienst. Was gibt's zu tun? 🐱",
+        "Ein purr-fekter Tag, um Dinge zu erledigen! Wie kann ich helfen?",
+        "Hey du! Lass uns zusammen den Tag rocken! 🚀",
+        "Miau! Brauchst du Hilfe bei deinen Terminen?",
+        "Willkommen zurück! Ich hab schon auf dich gewartet. 🐾",
+        "Lass uns deine Woche schnurrend einfach organisieren! 😺"
+    ],
+    SMALLTALK: [
+        "Miau! Mir geht's super, habe gerade ein paar Code-Mäuse gejagt! 🖱️ Und wie geht's dir?",
+        "Schnurr... meine Server schnurren wie ein Kätzchen. Alles im grünen Bereich! Wie läuft dein Tag?",
+        "Ich bin fit und motiviert! Habe heute schon virtuelle Wollknäuel entwirrt. Bereit für deine Termine?",
+        "Mir geht's blendend! Kalender aufgeräumt, Pfoten gewaschen. Was gibt's bei dir Neues?",
+        "Miau! Ein bisschen müde vom ganzen Daten-Sortieren, aber für dich bin ich immer wach! Wie fühlst du dich?",
+        "Alles bestens hier in der digitalen Katzenwelt. 🐾 Wie kann ich dir heute das Leben leichter machen?",
+        "Ich habe gerade ein kurzes Catnap auf dem Server gemacht. Jetzt bin ich 100% da! Und du?",
+        "Mir geht es hervorragend! Ich liebe es, wenn alles organisiert ist. Geht's dir auch so?",
+        "Schnurr, schnurr... mir geht es wunderbar. Hoffentlich hast du auch einen tollen Tag! Brauchst du Hilfe?",
+        "Ich bin absolut purr-fekt drauf! Lass uns gemeinsam etwas Produktives tun. 🚀"
+    ],
+    MOTIVATION: [
+        "Hey, tief durchatmen! 🐾 Jeder noch so lange Weg beginnt mit einem kleinen, winzigen Schritt. Erinnerst du dich daran, warum du angefangen hast? Du bist stark und du schaffst das – ich glaube an dich!",
+        "Miau! Kopf hoch! Auch nach dem stärksten Regen kommt die Sonne wieder raus. Vergiss nicht, wie viel Mut du schon bewiesen hast, um bis hierher zu kommen. Ich bin an deiner Seite! ☀️",
+        "Ein Neuanfang ist nicht das Löschen der Vergangenheit, sondern die Chance, aus allem Gelernten etwas Neues zu bauen. Du hast das Zeug dazu, deine Ziele zu erreichen! 📝",
+        "Glaube an dich selbst! Du hast schon so viele Hürden gemeistert, dieser aktuelle Schritt ist nur ein kleiner Kratzbaum auf deinem Weg nach oben. Zeig ihnen, was in dir steckt! 💪",
+        "Manchmal fühlt sich der Berg riesig an. Aber wenn wir einen Schritt nach dem anderen machen und uns auf das Hier und Jetzt konzentrieren, sind wir plötzlich oben. Was ist die EINE kleine Sache, die du jetzt gerade tun kannst?"
+    ],
+    UNKNOWN: [
+        "Mrrp? Das habe ich leider nicht ganz verstanden. Ich bin am besten darin, Termine für dich zu organisieren (z.B. 'Zahnarzt am Montag um 14 Uhr'), dich zu motivieren oder einfach etwas zu quatschen!",
+        "Schnurr... da bin ich überfragt. Sag mir einfach, wenn ich etwas für dich in den Kalender eintragen soll oder ob du einen Rat brauchst!",
+        "Hmm, das ist Kätzisch für mich. 🐱 Lass uns doch versuchen, einen neuen Termin zu planen oder zu schauen, was heute so ansteht.",
+        "Huch, da bin ich vom Faden abgekommen. Kannst du das nochmal anders formulieren? Ich lerne noch dazu!"
+    ]
+};
+
+let aiState = {
+    pendingEvent: null,
+    lastIndex: { GREETING: -1, SMALLTALK: -1, MOTIVATION: -1, UNKNOWN: -1 },
+    get memory() {
+        return JSON.parse(sessionStorage.getItem('muzi_ai_memory') || '{"lastEmotion": "neutral", "emotionTimestamp": 0, "history": []}');
+    },
+    set memory(val) {
+        sessionStorage.setItem('muzi_ai_memory', JSON.stringify(val));
+    }
+};
+
+function updateMemory(userText, botText, emotion) {
+    const mem = aiState.memory;
+    mem.history.push({ user: userText, bot: botText, emotion });
+    if (mem.history.length > 5) mem.history.shift();
+    if (emotion !== 'neutral') {
+        mem.lastEmotion = emotion;
+        mem.emotionTimestamp = Date.now();
+    }
+    aiState.memory = mem;
+}
+
+function getAiResponse(category) {
+    const list = aiResponses[category] || aiResponses.UNKNOWN;
+    let idx;
+    do {
+        idx = Math.floor(Math.random() * list.length);
+    } while (idx === aiState.lastIndex[category] && list.length > 1);
+    aiState.lastIndex[category] = idx;
+    return list[idx];
+}
+
+function parseEventInput(text) {
+    let eventTitle = text;
+    let eventTime = "12:00"; 
+    let extractedDateStr = null;
+
+    // 1. Extract Time
+    let timeMatch = text.match(/um\s+(\d{1,2})(?::(\d{2}))?(?:\s*Uhr)?\b/i);
+    if (!timeMatch) timeMatch = text.match(/(\d{1,2}):(\d{2})(?:\s*Uhr)?\b/i);
+    if (!timeMatch) timeMatch = text.match(/(\d{1,2})\s*Uhr\b/i);
+    
+    // Shorthand time at the end of the string (e.g. "Montag 18")
+    if (!timeMatch) {
+        const endMatch = text.match(/\b(\d{1,2})$/);
+        if (endMatch) timeMatch = endMatch;
+    }
+
+    if (timeMatch) {
+        let hour = parseInt(timeMatch[1]);
+        let minute = timeMatch[2] || "00";
+        eventTime = `${String(hour).padStart(2,'0')}:${minute}`;
+        eventTitle = eventTitle.replace(timeMatch[0], '');
+    }
+
+    // 2. Extract Date
+    const todayStr = formatDate(new Date());
+    
+    if (/\bheute\b/i.test(text)) {
+        extractedDateStr = todayStr;
+        eventTitle = eventTitle.replace(/\bheute\b/i, '');
+    } else if (/\bmorgen\b/i.test(text)) {
+        let d = new Date();
+        d.setDate(d.getDate() + 1);
+        extractedDateStr = formatDate(d);
+        eventTitle = eventTitle.replace(/\bmorgen\b/i, '');
+    } else {
+        // Match explicit dates: "20.5.", "20.05.", "20. Mai"
+        const dateMatch = text.match(/(?:am\s+)?(\d{1,2})\.\s*(?:(\d{1,2})\.?|(Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|Jan|Feb|Mär|Apr|Jun|Jul|Aug|Sep|Okt|Nov|Dez))\b/i);
+        if (dateMatch) {
+            let d = new Date();
+            let day = parseInt(dateMatch[1]);
+            
+            if (dateMatch[2]) {
+                d.setMonth(parseInt(dateMatch[2]) - 1);
+            } else if (dateMatch[3]) {
+                const monthName = dateMatch[3].toLowerCase();
+                const months = ['jan', 'feb', 'mär', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dez'];
+                let monthIndex = months.findIndex(m => monthName.startsWith(m));
+                if (monthIndex > -1) d.setMonth(monthIndex);
+            }
+            d.setDate(day);
+            extractedDateStr = formatDate(d);
+            eventTitle = eventTitle.replace(dateMatch[0], '');
+        } else {
+            // Match weekdays
+            const days = ['sonntag', 'montag', 'dienstag', 'mittwoch', 'donnerstag', 'freitag', 'samstag'];
+            for(let i=0; i<days.length; i++) {
+                if (new RegExp('\\b' + days[i] + '\\b', 'i').test(text)) {
+                    let d = new Date();
+                    let dayDiff = (i - d.getDay() + 7) % 7;
+                    if (dayDiff === 0) dayDiff = 7;
+                    d.setDate(d.getDate() + dayDiff);
+                    extractedDateStr = formatDate(d);
+                    eventTitle = eventTitle.replace(new RegExp('(am\\s+)?\\b' + days[i] + '\\b', 'i'), '');
+                    break;
+                }
+            }
+        }
+    }
+
+    eventTitle = eventTitle.trim().replace(/^[^a-zA-Z0-9äöüß]+/, '').replace(/[^a-zA-Z0-9äöüß]+$/, '').trim();
+    if (!eventTitle) eventTitle = "Neuer Termin";
+
+    if (extractedDateStr) {
+        return { title: eventTitle, date: extractedDateStr, time: eventTime };
+    }
+    return null;
+}
+
+function processAIInput(text) {
+    const t = text.toLowerCase();
+    const mem = aiState.memory;
+    let currentEmotion = 'neutral';
+    
+    // Emotion Detection
+    if (/(schlecht|traurig|nicht gut|weinen|deprimiert|einsam|verzweifelt)/.test(t)) {
+        currentEmotion = 'negative_sad';
+    } else if (/(stress|überfordert|müde|erschöpft|kaputt|viel zu tun|arbeit|druck|anstrengend)/.test(t)) {
+        currentEmotion = 'negative_stress';
+    } else if (/(besser|gut|super|klasse|freu|glücklich|motiviert)/.test(t)) {
+        currentEmotion = 'positive';
+    }
+
+    // Contextual Follow-up
+    const timeSinceLastEmotion = Date.now() - mem.emotionTimestamp;
+    const isGreeting = /^(hallo|hey|hi|moin|servus|miau|guten tag|guten morgen|guten abend)/.test(t);
+    
+    if (isGreeting && (mem.lastEmotion === 'negative_sad' || mem.lastEmotion === 'negative_stress') && timeSinceLastEmotion > 60000) {
+        const responses = [
+            "Miau! Vorhin ging es dir ja nicht so gut... wie fühlst du dich jetzt? Hat ein bisschen Ausruhen geholfen?",
+            "Hey du! Schön, dass du wieder da bist. Geht es dir mittlerweile etwas besser? Schnurr...",
+            "Mrrp? Ich habe an dich gedacht. Ist der Stress ein bisschen weniger geworden?"
+        ];
+        mem.lastEmotion = 'neutral';
+        aiState.memory = mem;
+        const resp = responses[Math.floor(Math.random() * responses.length)];
+        updateMemory(text, resp, 'neutral');
+        return resp;
+    }
+
+    // 0. Pending Confirmation State
+    if (aiState.pendingEvent) {
+        if (/^(ja|jo|yes|ok|okay|mach|gerne|sicher|bitte)/.test(t)) {
+            const ev = aiState.pendingEvent;
+            state.events.push(ev);
+            saveEvents();
+            renderCalendar();
+            aiState.pendingEvent = null;
+            
+            let resp = `Alles klar! Ich habe "${ev.title}" am ${ev.date} um ${ev.startTime} Uhr für dich gespeichert. 😺`;
+            if (mem.lastEmotion === 'negative_stress' || currentEmotion === 'negative_stress') {
+                resp += "\n\nAber denk dran: Stress dich nicht zu sehr damit! Eins nach dem anderen, ja? Schnurr...";
+            } else if (mem.lastEmotion === 'negative_sad' || currentEmotion === 'negative_sad') {
+                resp += "\n\nIch bin froh, dass du trotz allem an deine Pläne denkst. Du bist stark! 🐾";
+            }
+            updateMemory(text, resp, currentEmotion);
+            return resp;
+        } else if (/^(nein|nö|no|stop|abbruch|lass mal)/.test(t)) {
+            aiState.pendingEvent = null;
+            const resp = "Okay, ich habe den Termin verworfen. Gibt es sonst etwas, das wir heute tun können? 🐾";
+            updateMemory(text, resp, currentEmotion);
+            return resp;
+        }
+    }
+
+    // 1. Empathy Mode
+    if (currentEmotion === 'negative_sad') {
+        const responses = [
+            "Oh nein, das klingt gar nicht gut. Mrrp... möchtest du mir erzählen, was passiert ist? Ich bin hier und höre dir zu.",
+            "Das tut mir leid zu hören. Komm mal her für ein virtuelles Kopfnüsschen. 🐱 Manchmal ist alles einfach zu viel. Was bedrückt dich gerade am meisten?",
+            "Schnurr... tief durchatmen. Jeder hat mal dunkle Tage, und es ist völlig okay, sich so zu fühlen. Willst du es dir von der Seele reden?"
+        ];
+        const resp = responses[Math.floor(Math.random() * responses.length)];
+        updateMemory(text, resp, currentEmotion);
+        return resp;
+    }
+    
+    if (currentEmotion === 'negative_stress') {
+        const responses = [
+            "Miau... das klingt nach viel Druck. Hast du heute schon eine Pause gemacht? Vielleicht ein Glas Wasser trinken und für 5 Minuten die Augen schließen?",
+            "Stress kann erdrückend sein. Mrrp... Versuch, einen Schritt nach dem anderen zu machen. Was ist die EINE Sache, die du jetzt tun kannst, ohne dich zu überfordern?",
+            "Das hört sich anstrengend an. Lass uns versuchen, deinen Kopf ein bisschen frei zu bekommen. Denk daran: Du bist wichtiger als jede To-Do-Liste! 🐾"
+        ];
+        const resp = responses[Math.floor(Math.random() * responses.length)];
+        updateMemory(text, resp, currentEmotion);
+        return resp;
+    }
+    
+    if (currentEmotion === 'positive' && (mem.lastEmotion === 'negative_sad' || mem.lastEmotion === 'negative_stress')) {
+        mem.lastEmotion = 'neutral';
+        const resp = "Das freut mich so sehr zu hören! Schnurr! ✨ Es ist toll zu sehen, wie du dich wieder aufrappelst. Lass uns diese positive Energie nutzen!";
+        updateMemory(text, resp, currentEmotion);
+        return resp;
+    }
+
+    // 2. Intent: Motivation
+    if (/(motivier mich|mut|hilfe|schaffe das nicht|wie soll ich)/.test(t)) {
+        const resp = getAiResponse('MOTIVATION');
+        updateMemory(text, resp, currentEmotion);
+        return resp;
+    }
+
+    // 3. Intent: Appointment Create
+    const parsed = parseEventInput(text);
+    if (parsed) {
+        aiState.pendingEvent = {
+            id: Date.now().toString(),
+            title: parsed.title,
+            date: parsed.date,
+            startTime: parsed.time,
+            endTime: parsed.time,
+            notes: "Erstellt von Muzi AI",
+            profileId: state.activeProfileId,
+            color: state.profile.color,
+            urgency: 100
+        };
+        let resp = `Miau! Soll ich "${parsed.title}" für ${parsed.date} um ${parsed.time} Uhr eintragen? (Ja / Nein)`;
+        
+        if (parseInt(parsed.time.split(':')[0]) < 9 && mem.lastEmotion === 'negative_stress') {
+            resp += "\n\n(Das ist ziemlich früh. Denk bitte daran, heute Abend rechtzeitig schlafen zu gehen, damit du dich erholen kannst!)";
+        }
+        
+        updateMemory(text, resp, currentEmotion);
+        return resp;
+    }
+
+    // 4. Intent: Appointment Query
+    if (/(heute an|termine heute|heute vor|was steht an|mein tag)/.test(t)) {
+        const todayStr = formatDate(new Date());
+        const todayEvents = state.events.filter(e => e.date === todayStr && isEventForActiveProfile(e));
+        let res = "";
+        if (todayEvents.length === 0) {
+            res = "Heute hast du keine Termine. Zeit zum Entspannen und Kraft tanken! 🐾";
+        } else {
+            res = `Heute hast du ${todayEvents.length} Termin${todayEvents.length>1?'e':''}:\n\n`;
+            todayEvents.sort((a,b) => a.startTime.localeCompare(b.startTime)).forEach(e => {
+                res += `• ${e.startTime} Uhr: ${e.title}\n`;
+            });
+        }
+        updateMemory(text, res, currentEmotion);
+        return res;
+    }
+
+    // 5. Intent: Smalltalk
+    if (/(wie geht es dir|wie gehts|was machst du|alles fit|wie läufts)/.test(t)) {
+        const resp = getAiResponse('SMALLTALK');
+        updateMemory(text, resp, currentEmotion);
+        return resp;
+    }
+
+    // 6. Intent: Greeting
+    if (isGreeting) {
+        const resp = getAiResponse('GREETING');
+        updateMemory(text, resp, currentEmotion);
+        return resp;
+    }
+
+    // 7. Intent: Unknown
+    const resp = getAiResponse('UNKNOWN');
+    updateMemory(text, resp, currentEmotion);
+    return resp;
+}
 
 function addAIMessage(text, type) {
     const msg = document.createElement('div');
     msg.className = `ai-msg ${type}`;
-    msg.textContent = text;
+    msg.innerText = text; // innerText to render newlines
     els.aiMessages.appendChild(msg);
     msg.scrollIntoView({ behavior: 'smooth' });
 }
@@ -726,10 +1021,12 @@ function sendAIMessage() {
     if (!text) return;
     addAIMessage(text, 'user');
     els.aiInput.value = '';
+    
+    // typing indicator simulation
     setTimeout(() => {
-        const response = aiResponses[Math.floor(Math.random() * aiResponses.length)];
+        const response = processAIInput(text);
         addAIMessage(response, 'bot');
-    }, 600 + Math.random() * 800);
+    }, 400 + Math.random() * 400);
 }
 
 $$('.ai-suggestion-chip').forEach(chip => {
