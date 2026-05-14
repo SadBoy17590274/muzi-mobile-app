@@ -133,6 +133,10 @@ function saveProfile() {
 }
 
 function updateProfileUI() {
+    // Set global accent color based on active profile
+    document.documentElement.style.setProperty('--profile-accent', state.profile.color);
+    document.documentElement.style.setProperty('--profile-accent-glow', hexToRgba(state.profile.color, 0.4));
+
     const avatarEls = [$('profileAvatarLarge')];
     const previewEl = $('profileEditAvatarPreview');
     const nameEl = $('profileName');
@@ -488,8 +492,8 @@ els.calGrid.addEventListener('touchend', e => {
 }, { passive: true });
 
 function changeMonth(direction) {
-    els.calGrid.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
-    els.calGrid.style.transform = `translateX(${direction > 0 ? '-30px' : '30px'})`;
+    els.calGrid.style.transition = 'transform 0.15s linear, opacity 0.15s linear';
+    els.calGrid.style.transform = `translateX(${direction > 0 ? '-20px' : '20px'})`;
     els.calGrid.style.opacity = '0';
     
     setTimeout(() => {
@@ -497,13 +501,13 @@ function changeMonth(direction) {
         renderCalendar();
         
         els.calGrid.style.transition = 'none';
-        els.calGrid.style.transform = `translateX(${direction > 0 ? '30px' : '-30px'})`;
+        els.calGrid.style.transform = `translateX(${direction > 0 ? '20px' : '-20px'})`;
         els.calGrid.offsetHeight; // force reflow
         
-        els.calGrid.style.transition = 'transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.35s ease';
+        els.calGrid.style.transition = 'transform 0.15s linear, opacity 0.15s linear';
         els.calGrid.style.transform = 'translateX(0)';
         els.calGrid.style.opacity = '1';
-    }, 200);
+    }, 150);
 }
 
 // ===== DAY DETAIL SHEET =====
@@ -1013,9 +1017,6 @@ function addAIMessage(text, type) {
     msg.scrollIntoView({ behavior: 'smooth' });
 }
 
-$('aiSendBtn').addEventListener('click', sendAIMessage);
-els.aiInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendAIMessage(); });
-
 function sendAIMessage() {
     const text = els.aiInput.value.trim();
     if (!text) return;
@@ -1028,6 +1029,9 @@ function sendAIMessage() {
         addAIMessage(response, 'bot');
     }, 400 + Math.random() * 400);
 }
+
+$('aiSendBtn').addEventListener('click', sendAIMessage);
+els.aiInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendAIMessage(); });
 
 $$('.ai-suggestion-chip').forEach(chip => {
     chip.addEventListener('click', () => {
@@ -1085,11 +1089,19 @@ function updateStats() {
 }
 
 // ===== TOGGLES =====
+function updateToggleVisuals(el) {
+    if (!el) return;
+    const isActive = el.classList.contains('active');
+    el.closest('.profile-option')?.classList.toggle('checked', isActive);
+}
+
 $('toggleNotifications')?.addEventListener('click', function() {
     this.classList.toggle('active');
+    updateToggleVisuals(this);
 });
 $('toggleDarkMode')?.addEventListener('click', function() {
     this.classList.toggle('active');
+    updateToggleVisuals(this);
     const isDark = this.classList.contains('active');
     document.body.classList.toggle('light-mode', !isDark);
     localStorage.setItem('muzi_dark_mode', isDark);
@@ -1098,6 +1110,7 @@ $('toggleDarkMode')?.addEventListener('click', function() {
 // Shared View toggle
 $('toggleSharedView')?.addEventListener('click', function() {
     this.classList.toggle('active');
+    updateToggleVisuals(this);
     state.sharedView = this.classList.contains('active');
     localStorage.setItem('muzi_shared_view', JSON.stringify(state.sharedView));
     renderCalendar();
@@ -1106,6 +1119,7 @@ $('toggleSharedView')?.addEventListener('click', function() {
 // Color Binding toggle
 $('toggleColorBinding')?.addEventListener('click', function() {
     this.classList.toggle('active');
+    updateToggleVisuals(this);
     state.colorBinding = this.classList.contains('active');
     localStorage.setItem('muzi_color_binding', JSON.stringify(state.colorBinding));
     renderCalendar();
@@ -1329,6 +1343,9 @@ function init() {
     updateProfileUI();
     renderSettingsProfileList();
 
+    // Init toggle visuals
+    $$('.toggle-switch').forEach(updateToggleVisuals);
+
     // Hide AI input bar initially
     const aiBar = document.querySelector('.ai-input-bar');
     if (aiBar) aiBar.style.display = 'none';
@@ -1436,7 +1453,7 @@ const CHANGELOG = [
                 desc: 'Monats-, Wochen- und Tagesansicht mit elegantem Dark Mode. Wische nach links/rechts um zwischen Monaten zu navigieren.'
             },
             {
-                icon: '🤖',
+                icon: '🐱',
                 title: 'Muzi AI Assistent',
                 desc: 'Dein intelligenter Helfer – frag nach Terminen oder lass dir deine Woche zusammenfassen.'
             },
