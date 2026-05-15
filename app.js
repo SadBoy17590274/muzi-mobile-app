@@ -22,7 +22,11 @@ const state = {
     // Event modal state
     eventProfileId: null,  // which profile to assign a new event to
     eventUrgency: 100,
-    googleConnected: JSON.parse(localStorage.getItem('muzi_google_connected') || 'false'),
+    get googleConnected() { 
+        const token = localStorage.getItem('muzi_google_token');
+        const expiry = localStorage.getItem('muzi_google_token_expiry');
+        return !!(token && expiry && Date.now() < parseInt(expiry));
+    },
     get profile() { return this.profiles.find(p => p.id === (this.editingProfileId || this.activeProfileId)) || this.profiles[0]; }
 };
 
@@ -1023,15 +1027,7 @@ function init() {
     $$('.toggle-switch').forEach(updateToggleVisuals);
 
     // Google Sync Status
-    const googleToken = localStorage.getItem('muzi_google_token');
-    const googleExpiry = localStorage.getItem('muzi_google_token_expiry');
-    if (googleToken && googleExpiry && Date.now() < parseInt(googleExpiry)) {
-        const btn = $('googleSyncBtn');
-        if (btn) {
-            btn.textContent = 'Verbunden';
-            btn.classList.add('connected');
-        }
-    }
+    updateGoogleSyncUI();
 
     if (!localStorage.getItem('muzi_first_open_done_v3')) {
         const onboardingOverlay = $('onboardingOverlay');
@@ -1117,9 +1113,9 @@ async function handleGoogleSync() {
         }
         
         if (btn) {
-            btn.textContent = 'Verbunden';
             btn.classList.add('connected');
             btn.disabled = false;
+            updateGoogleSyncUI();
         }
     } catch (err) {
         console.error('Google Sync Error:', err);
@@ -1154,7 +1150,8 @@ function importGoogleEvents(googleEvents) {
             color: state.profile.color, // Default to current profile color
             urgency: 100,
             notes: ge.description || '',
-            profileId: state.activeProfileId
+            profileId: state.activeProfileId,
+            isGoogleEvent: true
         };
 
         state.events.push(newEvent);
@@ -1167,7 +1164,7 @@ function importGoogleEvents(googleEvents) {
     }
 }
 
-$('googleSyncBtn')?.addEventListener('click', handleGoogleSync);
+// Removed duplicate listener
 
 // ===== ONBOARDING =====
 let onboardingColor = '#34C759';
@@ -1484,29 +1481,8 @@ function openGooglePrivacyModal() {
     
     confirmBtn.onclick = () => {
         overlay.classList.remove('open');
-        state.googleConnected = true;
-        localStorage.setItem('muzi_google_connected', 'true');
-        
-        // Simulate adding some Google events
-        const today = new Date();
-        const googleEvent = {
-            id: 'google_' + Date.now(),
-            title: 'Google Meeting (Beispiel)',
-            date: formatDate(today),
-            startTime: '14:00',
-            endTime: '15:00',
-            color: '#4285F4',
-            urgency: 100,
-            notes: 'Automatisch von Google importiert',
-            profileId: state.activeProfileId,
-            isGoogleEvent: true
-        };
-        state.events.push(googleEvent);
-        saveEvents();
-        renderCalendar();
-        updateGoogleSyncUI();
-        
-        alert('Google Kalender erfolgreich verbunden!');
+        // Trigger the actual SDK request
+        tokenClient.requestAccessToken({ prompt: 'consent' });
     };
 }
 
@@ -1537,11 +1513,12 @@ function updateGoogleSyncUI() {
 
 function disconnectGoogle() {
     if (confirm('Möchtest du dein Google-Konto wirklich trennen? Alle synchronisierten Google-Termine werden gelöscht.')) {
-        state.googleConnected = false;
-        localStorage.setItem('muzi_google_connected', 'false');
+        localStorage.removeItem('muzi_google_token');
+        localStorage.removeItem('muzi_google_token_expiry');
+        localStorage.removeItem('muzi_google_connected');
         
         // Remove all Google events
-        state.events = state.events.filter(ev => !ev.isGoogleEvent);
+        state.events = state.events.filter(ev => !ev.isGoogleEvent && !ev.googleId);
         saveEvents();
         renderCalendar();
         updateGoogleSyncUI();
