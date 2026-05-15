@@ -22,6 +22,7 @@ const state = {
     // Event modal state
     eventProfileId: null,  // which profile to assign a new event to
     eventUrgency: 100,
+    googleConnected: JSON.parse(localStorage.getItem('muzi_google_connected') || 'false'),
     get profile() { return this.profiles.find(p => p.id === (this.editingProfileId || this.activeProfileId)) || this.profiles[0]; }
 };
 
@@ -1452,9 +1453,13 @@ document.head.appendChild(style);
 
 // Initialize app check (ensuring updateProfileUI is called if needed)
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', updateProfileUI);
+    document.addEventListener('DOMContentLoaded', () => {
+        updateProfileUI();
+        updateGoogleSyncUI();
+    });
 } else {
     updateProfileUI();
+    updateGoogleSyncUI();
 }
 
 // ===== GOOGLE PRIVACY MODAL =====
@@ -1479,17 +1484,71 @@ function openGooglePrivacyModal() {
     
     confirmBtn.onclick = () => {
         overlay.classList.remove('open');
-        // Simulate Google Sign-In or connection
-        alert('Google Kalender Verbindung wird gestartet...');
+        state.googleConnected = true;
+        localStorage.setItem('muzi_google_connected', 'true');
+        
+        // Simulate adding some Google events
+        const today = new Date();
+        const googleEvent = {
+            id: 'google_' + Date.now(),
+            title: 'Google Meeting (Beispiel)',
+            date: formatDate(today),
+            startTime: '14:00',
+            endTime: '15:00',
+            color: '#4285F4',
+            urgency: 100,
+            notes: 'Automatisch von Google importiert',
+            profileId: state.activeProfileId,
+            isGoogleEvent: true
+        };
+        state.events.push(googleEvent);
+        saveEvents();
+        renderCalendar();
+        updateGoogleSyncUI();
+        
+        alert('Google Kalender erfolgreich verbunden!');
     };
 }
 
 $$('.google-sync-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         e.preventDefault();
-        openGooglePrivacyModal();
+        if (state.googleConnected) {
+            disconnectGoogle();
+        } else {
+            openGooglePrivacyModal();
+        }
     });
 });
+
+function updateGoogleSyncUI() {
+    $$('.google-sync-btn').forEach(btn => {
+        if (state.googleConnected) {
+            btn.textContent = 'Trennen';
+            btn.style.background = 'rgba(255,69,58,0.1)';
+            btn.style.color = '#ff453a';
+        } else {
+            btn.textContent = 'Verbinden';
+            btn.style.background = '';
+            btn.style.color = '';
+        }
+    });
+}
+
+function disconnectGoogle() {
+    if (confirm('Möchtest du dein Google-Konto wirklich trennen? Alle synchronisierten Google-Termine werden gelöscht.')) {
+        state.googleConnected = false;
+        localStorage.setItem('muzi_google_connected', 'false');
+        
+        // Remove all Google events
+        state.events = state.events.filter(ev => !ev.isGoogleEvent);
+        saveEvents();
+        renderCalendar();
+        updateGoogleSyncUI();
+        
+        alert('Google-Konto wurde getrennt und Daten gelöscht.');
+    }
+}
 
 $('googlePrivacyModalOverlay')?.addEventListener('click', e => {
     if (e.target === $('googlePrivacyModalOverlay')) {
