@@ -1361,3 +1361,77 @@ body {
 .accent-dot:active {
     transform: scale(0.9);
 }
+
+/* ========== PROFILE TRANSFER BUTTON ========== */
+.profile-member-card {
+    position: relative;
+    padding-right: 80px !important; /* Make room for the transfer button */
+}
+
+.profile-transfer-btn {
+    position: absolute;
+    right: 48px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.profile-transfer-btn:hover {
+    background: var(--surface3);
+    transform: translateY(-50%) scale(1.05);
+}
+
+.profile-transfer-btn:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.profile-transfer-btn svg {
+    opacity: 0.8;
+}
+
+/* Checkbox Styling */
+.checkbox-container input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: var(--surface3);
+    border: 1px solid var(--border);
+    padding: 9px;
+    border-radius: 6px;
+    display: inline-block;
+    position: relative;
+    cursor: pointer;
+}
+
+.checkbox-container input[type="checkbox"]:checked {
+    background-color: var(--accent);
+    border-color: var(--accent);
+}
+
+.checkbox-container input[type="checkbox"]:checked:after {
+    content: '\2714';
+    font-size: 14px;
+    position: absolute;
+    top: 0px;
+    left: 4px;
+    color: var(--bg);
+}
+
+#privacyConfirmBtn:not(:disabled) {
+    opacity: 1 !important;
+    box-shadow: 0 8px 20px var(--accent-glow);
+}
+
+#privacyConfirmBtn:not(:disabled):active {
+    transform: scale(0.98);
+}

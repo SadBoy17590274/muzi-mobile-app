@@ -532,6 +532,45 @@
 
     </main>
 
+    <!-- Privacy Policy Modal for Calendar Transfer -->
+    <div class="modal-overlay" id="privacyModalOverlay">
+        <div class="modal" id="privacyModal" style="border-radius: 28px;">
+            <div class="modal-handle"></div>
+            <div class="modal-header" style="justify-content: center; padding-top: 24px; border-bottom: none;">
+                <h2 class="modal-title" style="font-size: 22px; font-weight: 700;">Datenschutz & Übertragung</h2>
+            </div>
+            <div class="modal-body" style="padding-top: 8px; padding-bottom: 32px;">
+                <div class="privacy-content" style="background: var(--surface2); padding: 20px; border-radius: 20px; margin-bottom: 24px; font-size: 14px; color: var(--text2); line-height: 1.6; max-height: 300px; overflow-y: auto; border: 1px solid var(--border);">
+                    <h3 style="color: var(--text); margin-bottom: 12px; font-size: 16px;">Warum übertragen wir deine Daten?</h3>
+                    <p style="margin-bottom: 16px;">
+                        Die Übertragung deiner Kalenderdaten ermöglicht es dir, deine Termine und Erinnerungen sicher zwischen verschiedenen Profilen oder Geräten zu synchronisieren. Dies dient der Backup-Erstellung und der nahtlosen Nutzung deiner Daten.
+                    </p>
+                    <h3 style="color: var(--text); margin-bottom: 12px; font-size: 16px;">Welche Daten werden übertragen?</h3>
+                    <p style="margin-bottom: 16px;">
+                        Übertragen werden alle in diesem Profil gespeicherten Termine, inklusive Titel, Beschreibungen, Zeiten und Dringlichkeitsstufen.
+                    </p>
+                    <h3 style="color: var(--text); margin-bottom: 12px; font-size: 16px;">Deine Privatsphäre</h3>
+                    <p>
+                        Deine Daten werden verschlüsselt verarbeitet und nicht an Dritte weitergegeben. Du behältst jederzeit die volle Kontrolle über deine Informationen.
+                    </p>
+                </div>
+
+                <div class="privacy-agreements" style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px;">
+                    <label class="checkbox-container" style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
+                        <input type="checkbox" id="privacyCheck1" style="width: 22px; height: 22px; margin-top: 2px; accent-color: var(--accent); border-radius: 6px;">
+                        <span style="font-size: 14px; color: var(--text2);">Ich habe die Datenschutzrichtlinien gelesen und verstehe, warum meine Daten übertragen werden.</span>
+                    </label>
+                    <label class="checkbox-container" style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
+                        <input type="checkbox" id="privacyCheck2" style="width: 22px; height: 22px; margin-top: 2px; accent-color: var(--accent); border-radius: 6px;">
+                        <span style="font-size: 14px; color: var(--text2);">Ich erkläre mich mit der Verarbeitung und Übertragung meiner Kalenderdaten einverstanden.</span>
+                    </label>
+                </div>
+
+                <button id="privacyConfirmBtn" disabled style="width: 100%; padding: 16px; background: var(--accent); color: var(--bg); border: none; border-radius: 16px; font-weight: 700; font-size: 17px; cursor: pointer; transition: all 0.2s; opacity: 0.5;">Bestätigen & Übertragen</button>
+            </div>
+        </div>
+    </div>
+
     <!-- App Logic -->
     <script src="app.js"></script>
 </body>

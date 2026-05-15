@@ -191,6 +191,9 @@ function renderProfileList() {
                     <div class="profile-member-name">${p.name}</div>
                     <div class="profile-member-role">${isActive ? 'Aktiv' : 'Tippen zum Wechseln'}</div>
                 </div>
+                <button class="profile-transfer-btn" data-id="${p.id}" title="Kalenderdaten übertragen">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2.1l4 4-4 4"/><path d="M3 12.2v-2a4 4 0 0 1 4-4h12.8M7 21.9l-4-4 4-4"/><path d="M21 11.8v2a4 4 0 0 1-4 4H4.2"/></svg>
+                </button>
                 ${checkSvg}
             </div>
         `;
@@ -206,10 +209,23 @@ function renderProfileList() {
     `;
     list.innerHTML = html;
     
-    $$('.profile-member-card[data-id]').forEach(item => {
-        item.addEventListener('click', () => {
-            state.activeProfileId = item.dataset.id;
-            saveProfile();
+    $$('.profile-member-card').forEach(item => {
+        item.addEventListener('click', (e) => {
+            // Don't switch if transfer button was clicked
+            if (e.target.closest('.profile-transfer-btn')) return;
+            
+            const id = item.dataset.id;
+            if (id) {
+                state.activeProfileId = id;
+                saveProfile();
+            }
+        });
+    });
+
+    $$('.profile-transfer-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openPrivacyModal(btn.dataset.id);
         });
     });
     
@@ -1370,4 +1386,74 @@ $('whatsNewOverlay')?.addEventListener('click', e => {
 });
 
 setTimeout(showWhatsNew, 600);
+
+// ===== PRIVACY & TRANSFER MODAL =====
+function openPrivacyModal(profileId) {
+    const overlay = $('privacyModalOverlay');
+    const check1 = $('privacyCheck1');
+    const check2 = $('privacyCheck2');
+    const confirmBtn = $('privacyConfirmBtn');
+    
+    // Reset state
+    check1.checked = false;
+    check2.checked = false;
+    confirmBtn.disabled = true;
+    overlay.classList.add('open');
+    
+    const updateBtn = () => {
+        confirmBtn.disabled = !(check1.checked && check2.checked);
+    };
+    
+    check1.onclick = updateBtn;
+    check2.onclick = updateBtn;
+    
+    confirmBtn.onclick = () => {
+        const profile = getProfileById(profileId);
+        overlay.classList.remove('open');
+        
+        // Show success message
+        const successMsg = document.createElement('div');
+        successMsg.style.cssText = `
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--accent); color: var(--bg);
+            padding: 12px 24px; border-radius: 12px; font-weight: 600;
+            z-index: 1000; animation: slideDown 0.3s ease forwards;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        `;
+        successMsg.textContent = `Daten von "${profile.name}" erfolgreich übertragen!`;
+        document.body.appendChild(successMsg);
+        
+        setTimeout(() => {
+            successMsg.style.animation = 'slideUp 0.3s ease forwards';
+            setTimeout(() => successMsg.remove(), 300);
+        }, 3000);
+    };
+}
+
+$('privacyModalOverlay')?.addEventListener('click', e => {
+    if (e.target === $('privacyModalOverlay')) {
+        $('privacyModalOverlay').classList.remove('open');
+    }
+});
+
+// Animation for success message
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideDown {
+        from { transform: translate(-50%, -100%); opacity: 0; }
+        to { transform: translate(-50%, 0); opacity: 1; }
+    }
+    @keyframes slideUp {
+        from { transform: translate(-50%, 0); opacity: 1; }
+        to { transform: translate(-50%, -100%); opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
+
+// Initialize app check (ensuring updateProfileUI is called if needed)
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', updateProfileUI);
+} else {
+    updateProfileUI();
+}
 
