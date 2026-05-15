@@ -1,8 +1,0 @@
-fastapi
-uvicorn
-requests
-pydantic
-chromadb
-langchain
-langchain-community
-langchain-ollama

@@ -40,8 +40,6 @@ const els = {
     eventStart: $('eventStartTime'),
     eventEnd: $('eventEndTime'),
     eventNotes: $('eventNotes'),
-    aiMessages: $('aiMessages'),
-    aiInput: $('aiInput'),
     searchInput: $('searchInput'),
     searchResults: $('searchResults'),
     statEvents: $('statEvents'),
@@ -240,7 +238,7 @@ function closeSidebar() {
 }
 
 // All menu buttons
-['menuBtn','menuBtnAI','menuBtnProfile','menuBtnSearch','menuBtnSettings'].forEach(id => {
+['menuBtn','menuBtnProfile','menuBtnSearch','menuBtnSettings'].forEach(id => {
     const el = $(id);
     if (el) el.addEventListener('click', openSidebar);
 });
@@ -256,7 +254,6 @@ $$('.sidebar-nav-item').forEach(item => {
         else if (page === 'events') switchPage('pageCalendar');
         else if (page === 'reminders') switchPage('pageCalendar');
         else if (page === 'notes') switchPage('pageNotes');
-        else if (page === 'creative') switchPage('pageCreative');
         else if (page === 'settings') switchPage('pageSettings');
         $$('.sidebar-nav-item').forEach(n => n.classList.remove('active'));
         item.classList.add('active');
@@ -272,9 +269,6 @@ function switchPage(pageId) {
     $$('.nav-item').forEach(n => {
         n.classList.toggle('active', n.dataset.page === pageId);
     });
-    // Hide AI input bar when not on AI page
-    const aiBar = document.querySelector('.ai-input-bar');
-    if (aiBar) aiBar.style.display = pageId === 'pageAI' ? 'flex' : 'none';
 }
 
 $$('.nav-item').forEach(btn => {
@@ -708,468 +702,6 @@ $('modalSaveBtn').addEventListener('click', () => {
     renderCalendar();
 });
 
-// ===== AI CHAT (MUZI) =====
-const aiResponses = {
-    GREETING: [
-        "Hey! Bereit, heute die Welt zu erobern? 🐾",
-        "Miau! Lass uns deine Pläne ordnen!",
-        "Schön dich zu sehen, heute wird ein produktiver Tag! ✨",
-        "Schnurr... was steht heute auf dem Programm?",
-        "Hallo! Muzi meldet sich zum Dienst. Was gibt's zu tun? 🐱",
-        "Ein purr-fekter Tag, um Dinge zu erledigen! Wie kann ich helfen?",
-        "Hey du! Lass uns zusammen den Tag rocken! 🚀",
-        "Miau! Brauchst du Hilfe bei deinen Terminen?",
-        "Willkommen zurück! Ich hab schon auf dich gewartet. 🐾",
-        "Lass uns deine Woche schnurrend einfach organisieren! 😺"
-    ],
-    SMALLTALK: [
-        "Miau! Mir geht's super, habe gerade ein paar Code-Mäuse gejagt! 🖱️ Und wie geht's dir?",
-        "Schnurr... meine Server schnurren wie ein Kätzchen. Alles im grünen Bereich! Wie läuft dein Tag?",
-        "Ich bin fit und motiviert! Habe heute schon virtuelle Wollknäuel entwirrt. Bereit für deine Termine?",
-        "Mir geht's blendend! Kalender aufgeräumt, Pfoten gewaschen. Was gibt's bei dir Neues?",
-        "Miau! Ein bisschen müde vom ganzen Daten-Sortieren, aber für dich bin ich immer wach! Wie fühlst du dich?",
-        "Alles bestens hier in der digitalen Katzenwelt. 🐾 Wie kann ich dir heute das Leben leichter machen?",
-        "Ich habe gerade ein kurzes Catnap auf dem Server gemacht. Jetzt bin ich 100% da! Und du?",
-        "Mir geht es hervorragend! Ich liebe es, wenn alles organisiert ist. Geht's dir auch so?",
-        "Schnurr, schnurr... mir geht es wunderbar. Hoffentlich hast du auch einen tollen Tag! Brauchst du Hilfe?",
-        "Ich bin absolut purr-fekt drauf! Lass uns gemeinsam etwas Produktives tun. 🚀"
-    ],
-    MOTIVATION: [
-        "Hey, tief durchatmen! 🐾 Jeder noch so lange Weg beginnt mit einem kleinen, winzigen Schritt. Erinnerst du dich daran, warum du angefangen hast? Du bist stark und du schaffst das – ich glaube an dich!",
-        "Miau! Kopf hoch! Auch nach dem stärksten Regen kommt die Sonne wieder raus. Vergiss nicht, wie viel Mut du schon bewiesen hast, um bis hierher zu kommen. Ich bin an deiner Seite! ☀️",
-        "Ein Neuanfang ist nicht das Löschen der Vergangenheit, sondern die Chance, aus allem Gelernten etwas Neues zu bauen. Du hast das Zeug dazu, deine Ziele zu erreichen! 📝",
-        "Glaube an dich selbst! Du hast schon so viele Hürden gemeistert, dieser aktuelle Schritt ist nur ein kleiner Kratzbaum auf deinem Weg nach oben. Zeig ihnen, was in dir steckt! 💪",
-        "Manchmal fühlt sich der Berg riesig an. Aber wenn wir einen Schritt nach dem anderen machen und uns auf das Hier und Jetzt konzentrieren, sind wir plötzlich oben. Was ist die EINE kleine Sache, die du jetzt gerade tun kannst?"
-    ],
-    UNKNOWN: [
-        "Mrrp? Das habe ich leider nicht ganz verstanden. Ich bin am besten darin, Termine für dich zu organisieren (z.B. 'Zahnarzt am Montag um 14 Uhr'), dich zu motivieren oder einfach etwas zu quatschen!",
-        "Schnurr... da bin ich überfragt. Sag mir einfach, wenn ich etwas für dich in den Kalender eintragen soll oder ob du einen Rat brauchst!",
-        "Hmm, das ist Kätzisch für mich. 🐱 Lass uns doch versuchen, einen neuen Termin zu planen oder zu schauen, was heute so ansteht.",
-        "Huch, da bin ich vom Faden abgekommen. Kannst du das nochmal anders formulieren? Ich lerne noch dazu!"
-    ]
-};
-
-let aiState = {
-    pendingEvent: null,
-    lastIndex: { GREETING: -1, SMALLTALK: -1, MOTIVATION: -1, UNKNOWN: -1 },
-    get memory() {
-        return JSON.parse(sessionStorage.getItem('muzi_ai_memory') || '{"lastEmotion": "neutral", "emotionTimestamp": 0, "history": []}');
-    },
-    set memory(val) {
-        sessionStorage.setItem('muzi_ai_memory', JSON.stringify(val));
-    }
-};
-
-function updateMemory(userText, botText, emotion) {
-    const mem = aiState.memory;
-    mem.history.push({ user: userText, bot: botText, emotion });
-    if (mem.history.length > 5) mem.history.shift();
-    if (emotion !== 'neutral') {
-        mem.lastEmotion = emotion;
-        mem.emotionTimestamp = Date.now();
-    }
-    aiState.memory = mem;
-}
-
-function getAiResponse(category) {
-    const list = aiResponses[category] || aiResponses.UNKNOWN;
-    let idx;
-    do {
-        idx = Math.floor(Math.random() * list.length);
-    } while (idx === aiState.lastIndex[category] && list.length > 1);
-    aiState.lastIndex[category] = idx;
-    return list[idx];
-}
-
-function parseEventInput(text) {
-    let eventTitle = text;
-    let eventTime = "12:00"; 
-    let extractedDateStr = null;
-
-    // 1. Extract Time
-    let timeMatch = text.match(/um\s+(\d{1,2})(?::(\d{2}))?(?:\s*Uhr)?\b/i);
-    if (!timeMatch) timeMatch = text.match(/(\d{1,2}):(\d{2})(?:\s*Uhr)?\b/i);
-    if (!timeMatch) timeMatch = text.match(/(\d{1,2})\s*Uhr\b/i);
-    
-    // Shorthand time at the end of the string (e.g. "Montag 18")
-    if (!timeMatch) {
-        const endMatch = text.match(/\b(\d{1,2})$/);
-        if (endMatch) timeMatch = endMatch;
-    }
-
-    if (timeMatch) {
-        let hour = parseInt(timeMatch[1]);
-        let minute = timeMatch[2] || "00";
-        eventTime = `${String(hour).padStart(2,'0')}:${minute}`;
-        eventTitle = eventTitle.replace(timeMatch[0], '');
-    }
-
-    // 2. Extract Date
-    const todayStr = formatDate(new Date());
-    
-    if (/\bheute\b/i.test(text)) {
-        extractedDateStr = todayStr;
-        eventTitle = eventTitle.replace(/\bheute\b/i, '');
-    } else if (/\bmorgen\b/i.test(text)) {
-        let d = new Date();
-        d.setDate(d.getDate() + 1);
-        extractedDateStr = formatDate(d);
-        eventTitle = eventTitle.replace(/\bmorgen\b/i, '');
-    } else {
-        // Match explicit dates: "20.5.", "20.05.", "20. Mai"
-        const dateMatch = text.match(/(?:am\s+)?(\d{1,2})\.\s*(?:(\d{1,2})\.?|(Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|Jan|Feb|Mär|Apr|Jun|Jul|Aug|Sep|Okt|Nov|Dez))\b/i);
-        if (dateMatch) {
-            let d = new Date();
-            let day = parseInt(dateMatch[1]);
-            
-            if (dateMatch[2]) {
-                d.setMonth(parseInt(dateMatch[2]) - 1);
-            } else if (dateMatch[3]) {
-                const monthName = dateMatch[3].toLowerCase();
-                const months = ['jan', 'feb', 'mär', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dez'];
-                let monthIndex = months.findIndex(m => monthName.startsWith(m));
-                if (monthIndex > -1) d.setMonth(monthIndex);
-            }
-            d.setDate(day);
-            extractedDateStr = formatDate(d);
-            eventTitle = eventTitle.replace(dateMatch[0], '');
-        } else {
-            // Match weekdays
-            const days = ['sonntag', 'montag', 'dienstag', 'mittwoch', 'donnerstag', 'freitag', 'samstag'];
-            for(let i=0; i<days.length; i++) {
-                if (new RegExp('\\b' + days[i] + '\\b', 'i').test(text)) {
-                    let d = new Date();
-                    let dayDiff = (i - d.getDay() + 7) % 7;
-                    if (dayDiff === 0) dayDiff = 7;
-                    d.setDate(d.getDate() + dayDiff);
-                    extractedDateStr = formatDate(d);
-                    eventTitle = eventTitle.replace(new RegExp('(am\\s+)?\\b' + days[i] + '\\b', 'i'), '');
-                    break;
-                }
-            }
-        }
-    }
-
-    eventTitle = eventTitle.trim().replace(/^[^a-zA-Z0-9äöüß]+/, '').replace(/[^a-zA-Z0-9äöüß]+$/, '').trim();
-    if (!eventTitle) eventTitle = "Neuer Termin";
-
-    if (extractedDateStr) {
-        return { title: eventTitle, date: extractedDateStr, time: eventTime };
-    }
-    return null;
-}
-
-function processAIInput(text) {
-    const t = text.toLowerCase();
-    const mem = aiState.memory;
-    let currentEmotion = 'neutral';
-    
-    // Emotion Detection
-    if (/(schlecht|traurig|nicht gut|weinen|deprimiert|einsam|verzweifelt)/.test(t)) {
-        currentEmotion = 'negative_sad';
-    } else if (/(stress|überfordert|müde|erschöpft|kaputt|viel zu tun|arbeit|druck|anstrengend)/.test(t)) {
-        currentEmotion = 'negative_stress';
-    } else if (/(besser|gut|super|klasse|freu|glücklich|motiviert)/.test(t)) {
-        currentEmotion = 'positive';
-    }
-
-    // Contextual Follow-up
-    const timeSinceLastEmotion = Date.now() - mem.emotionTimestamp;
-    const isGreeting = /^(hallo|hey|hi|moin|servus|miau|guten tag|guten morgen|guten abend)/.test(t);
-    
-    if (isGreeting && (mem.lastEmotion === 'negative_sad' || mem.lastEmotion === 'negative_stress') && timeSinceLastEmotion > 60000) {
-        const responses = [
-            "Miau! Vorhin ging es dir ja nicht so gut... wie fühlst du dich jetzt? Hat ein bisschen Ausruhen geholfen?",
-            "Hey du! Schön, dass du wieder da bist. Geht es dir mittlerweile etwas besser? Schnurr...",
-            "Mrrp? Ich habe an dich gedacht. Ist der Stress ein bisschen weniger geworden?"
-        ];
-        mem.lastEmotion = 'neutral';
-        aiState.memory = mem;
-        const resp = responses[Math.floor(Math.random() * responses.length)];
-        updateMemory(text, resp, 'neutral');
-        return resp;
-    }
-
-    // 0. Pending Confirmation State
-    if (aiState.pendingEvent) {
-        if (/^(ja|jo|yes|ok|okay|mach|gerne|sicher|bitte)/.test(t)) {
-            const ev = aiState.pendingEvent;
-            state.events.push(ev);
-            saveEvents();
-            renderCalendar();
-            aiState.pendingEvent = null;
-            
-            let resp = `Alles klar! Ich habe "${ev.title}" am ${ev.date} um ${ev.startTime} Uhr für dich gespeichert. 😺`;
-            if (mem.lastEmotion === 'negative_stress' || currentEmotion === 'negative_stress') {
-                resp += "\n\nAber denk dran: Stress dich nicht zu sehr damit! Eins nach dem anderen, ja? Schnurr...";
-            } else if (mem.lastEmotion === 'negative_sad' || currentEmotion === 'negative_sad') {
-                resp += "\n\nIch bin froh, dass du trotz allem an deine Pläne denkst. Du bist stark! 🐾";
-            }
-            updateMemory(text, resp, currentEmotion);
-            return resp;
-        } else if (/^(nein|nö|no|stop|abbruch|lass mal)/.test(t)) {
-            aiState.pendingEvent = null;
-            const resp = "Okay, ich habe den Termin verworfen. Gibt es sonst etwas, das wir heute tun können? 🐾";
-            updateMemory(text, resp, currentEmotion);
-            return resp;
-        }
-    }
-
-    // 1. Empathy Mode
-    if (currentEmotion === 'negative_sad') {
-        const responses = [
-            "Oh nein, das klingt gar nicht gut. Mrrp... möchtest du mir erzählen, was passiert ist? Ich bin hier und höre dir zu.",
-            "Das tut mir leid zu hören. Komm mal her für ein virtuelles Kopfnüsschen. 🐱 Manchmal ist alles einfach zu viel. Was bedrückt dich gerade am meisten?",
-            "Schnurr... tief durchatmen. Jeder hat mal dunkle Tage, und es ist völlig okay, sich so zu fühlen. Willst du es dir von der Seele reden?"
-        ];
-        const resp = responses[Math.floor(Math.random() * responses.length)];
-        updateMemory(text, resp, currentEmotion);
-        return resp;
-    }
-    
-    if (currentEmotion === 'negative_stress') {
-        const responses = [
-            "Miau... das klingt nach viel Druck. Hast du heute schon eine Pause gemacht? Vielleicht ein Glas Wasser trinken und für 5 Minuten die Augen schließen?",
-            "Stress kann erdrückend sein. Mrrp... Versuch, einen Schritt nach dem anderen zu machen. Was ist die EINE Sache, die du jetzt tun kannst, ohne dich zu überfordern?",
-            "Das hört sich anstrengend an. Lass uns versuchen, deinen Kopf ein bisschen frei zu bekommen. Denk daran: Du bist wichtiger als jede To-Do-Liste! 🐾"
-        ];
-        const resp = responses[Math.floor(Math.random() * responses.length)];
-        updateMemory(text, resp, currentEmotion);
-        return resp;
-    }
-    
-    if (currentEmotion === 'positive' && (mem.lastEmotion === 'negative_sad' || mem.lastEmotion === 'negative_stress')) {
-        mem.lastEmotion = 'neutral';
-        const resp = "Das freut mich so sehr zu hören! Schnurr! ✨ Es ist toll zu sehen, wie du dich wieder aufrappelst. Lass uns diese positive Energie nutzen!";
-        updateMemory(text, resp, currentEmotion);
-        return resp;
-    }
-
-    // 2. Intent: Motivation
-    if (/(motivier mich|mut|hilfe|schaffe das nicht|wie soll ich)/.test(t)) {
-        const resp = getAiResponse('MOTIVATION');
-        updateMemory(text, resp, currentEmotion);
-        return resp;
-    }
-
-    // 3. Intent: Appointment Create
-    const parsed = parseEventInput(text);
-    if (parsed) {
-        aiState.pendingEvent = {
-            id: Date.now().toString(),
-            title: parsed.title,
-            date: parsed.date,
-            startTime: parsed.time,
-            endTime: parsed.time,
-            notes: "Erstellt von Muzi AI",
-            profileId: state.activeProfileId,
-            color: state.profile.color,
-            urgency: 100
-        };
-        let resp = `Miau! Soll ich "${parsed.title}" für ${parsed.date} um ${parsed.time} Uhr eintragen? (Ja / Nein)`;
-        
-        if (parseInt(parsed.time.split(':')[0]) < 9 && mem.lastEmotion === 'negative_stress') {
-            resp += "\n\n(Das ist ziemlich früh. Denk bitte daran, heute Abend rechtzeitig schlafen zu gehen, damit du dich erholen kannst!)";
-        }
-        
-        updateMemory(text, resp, currentEmotion);
-        return resp;
-    }
-
-    // 4. Intent: Appointment Query
-    if (/(heute an|termine heute|heute vor|was steht an|mein tag)/.test(t)) {
-        const todayStr = formatDate(new Date());
-        const todayEvents = state.events.filter(e => e.date === todayStr && isEventForActiveProfile(e));
-        let res = "";
-        if (todayEvents.length === 0) {
-            res = "Heute hast du keine Termine. Zeit zum Entspannen und Kraft tanken! 🐾";
-        } else {
-            res = `Heute hast du ${todayEvents.length} Termin${todayEvents.length>1?'e':''}:\n\n`;
-            todayEvents.sort((a,b) => a.startTime.localeCompare(b.startTime)).forEach(e => {
-                res += `• ${e.startTime} Uhr: ${e.title}\n`;
-            });
-        }
-        updateMemory(text, res, currentEmotion);
-        return res;
-    }
-
-    // 5. Intent: Smalltalk
-    if (/(wie geht es dir|wie gehts|was machst du|alles fit|wie läufts)/.test(t)) {
-        const resp = getAiResponse('SMALLTALK');
-        updateMemory(text, resp, currentEmotion);
-        return resp;
-    }
-
-    // 6. Intent: Greeting
-    if (isGreeting) {
-        const resp = getAiResponse('GREETING');
-        updateMemory(text, resp, currentEmotion);
-        return resp;
-    }
-
-    // 7. Intent: Unknown
-    const resp = getAiResponse('UNKNOWN');
-    updateMemory(text, resp, currentEmotion);
-    return resp;
-}
-
-function addAIMessage(text, type) {
-    const msg = document.createElement('div');
-    msg.className = `ai-msg ${type}`;
-    msg.innerText = text; // innerText to render newlines
-    els.aiMessages.appendChild(msg);
-    msg.scrollIntoView({ behavior: 'smooth' });
-}
-
-async function sendAIMessage() {
-    const text = els.aiInput.value.trim();
-    if (!text) return;
-    addAIMessage(text, 'user');
-    els.aiInput.value = '';
-    
-    // Typing indicator
-    const typingMsg = document.createElement('div');
-    typingMsg.className = 'ai-msg bot typing';
-    typingMsg.textContent = 'Muzi überlegt...';
-    els.aiMessages.appendChild(typingMsg);
-    typingMsg.scrollIntoView({ behavior: 'smooth' });
-
-    try {
-        const response = await fetch('http://localhost:5000/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                message: text,
-                activeProfileId: state.activeProfileId
-            })
-        });
-
-        const data = await response.json();
-        typingMsg.remove();
-        addAIMessage(data.response, 'bot');
-
-        if (data.action) {
-            handleAIAction(data.action);
-        }
-    } catch (error) {
-        typingMsg.remove();
-        console.error('AI Error:', error);
-        // Fallback to old regex logic if server is down
-        const fallbackResponse = processAIInput(text);
-        addAIMessage(fallbackResponse + " (Offline-Modus)", 'bot');
-    }
-}
-
-function handleAIAction(actionData) {
-    console.log("AI Action received:", actionData);
-    
-    if (actionData.type === 'action') {
-        if (actionData.action === 'create_event') {
-            const params = actionData.params || {};
-            const newEvent = {
-                id: Date.now().toString(),
-                title: params.title,
-                date: params.date,
-                startTime: params.time,
-                endTime: params.time,
-                profileId: state.activeProfileId,
-                color: state.profile.color,
-                urgency: params.urgency || 50, // Use semantic urgency
-                sync: params.sync,
-                projectName: params.project_name
-            };
-            state.events.push(newEvent);
-            saveEvents();
-            renderCalendar();
-            
-            if (params.sync === 'Creative Bar') {
-                // Update Creative Bar UI
-                const creativeCard = document.querySelector('#pageCreative .creative-card');
-                if (creativeCard) {
-                    const item = document.createElement('div');
-                    item.style.marginTop = '12px';
-                    item.style.padding = '10px';
-                    item.style.background = 'var(--surface2)';
-                    item.style.borderRadius = '10px';
-                    item.innerHTML = `<strong>${params.project_name}</strong><br><span style="font-size:12px;color:var(--text3)">Verknüpft mit: ${params.title}</span>`;
-                    creativeCard.appendChild(item);
-                }
-            }
-        } else if (actionData.action === 'reschedule') {
-            // Push all non-urgent events for today to tomorrow
-            const todayStr = formatDate(new Date());
-            let rescheduledCount = 0;
-            state.events = state.events.map(ev => {
-                if (ev.date === todayStr && ev.urgency < 80) {
-                    const d = new Date();
-                    d.setDate(d.getDate() + 1);
-                    ev.date = formatDate(d);
-                    rescheduledCount++;
-                }
-                return ev;
-            });
-            if (rescheduledCount > 0) {
-                saveEvents();
-                renderCalendar();
-            }
-        } else if (actionData.action === 'suggest_focus_block') {
-            const todayStr = formatDate(new Date());
-            state.events.push({
-                id: Date.now().toString(),
-                title: "🧠 Deep Work Focus",
-                date: todayStr,
-                startTime: "14:00", endTime: "16:00",
-                profileId: state.activeProfileId,
-                color: "#FF3B30",
-                urgency: 100,
-                sync: "Creative Bar"
-            });
-            saveEvents();
-            renderCalendar();
-            setTimeout(() => addAIMessage("Ich habe dir einen Focus-Block eingerichtet und Ablenkungen stummgeschaltet.", 'bot'), 1000);
-        } else if (actionData.action === 'save_asset') {
-            setTimeout(() => addAIMessage(`Erledigt! Ich habe das Asset im Hintergrund gespeichert (Simuliert).`, 'bot'), 1000);
-        } else if (actionData.action === 'switch_to_all_profiles') {
-            state.activeProfileId = 'all';
-            renderCalendar();
-            setTimeout(() => addAIMessage("Ich zeige dir jetzt die Termine aller Profile an.", 'bot'), 1000);
-        } else if (actionData.action === 'create_reminder' || actionData.action === 'add_to_pool') {
-            setTimeout(() => addAIMessage(`Ich habe das notiert! Soll ich dich später noch einmal daran erinnern?`, 'bot'), 1000);
-        } else if (actionData.action === 'burnout_intervention') {
-            setTimeout(() => addAIMessage("Vielleicht hilft eine kurze Pause? Die Arbeit läuft nicht weg. Soll ich dich in 20 Minuten wieder erinnern?", 'bot'), 1000);
-        } else if (actionData.action === 'dev_motivation') {
-            setTimeout(() => addAIMessage("Tief durchatmen! Das kriegen wir hin. Sollen wir das Problem in kleinere Stücke aufteilen?", 'bot'), 1000);
-        } else if (actionData.action === 'add_to_bucket_list') {
-            setTimeout(() => addAIMessage("Ich habe das auf unsere 'Irgendwann'-Bucket-List gesetzt. Es geht nicht vergessen, stresst aber heute auch nicht.", 'bot'), 1000);
-        } else if (actionData.action === 'suggest_distraction') {
-            setTimeout(() => addAIMessage("Lass uns etwas anderes machen. Wollen wir eine neue Leinwand in der Creative Bar aufmachen und etwas ohne Ziel skizzieren?", 'bot'), 1000);
-        }
-    } else if (actionData.type === 'mood_change' || actionData.type === 'empathy_mode') {
-        const mood = actionData.mood || (actionData.type === 'empathy_mode' ? 'empathy' : 'normal');
-        
-        // Remove all mood classes
-        document.body.classList.remove('empathy-mode', 'joy-mode', 'stress-mode');
-        const avatar = document.getElementById('aiAvatar');
-        if (avatar) avatar.classList.remove('empathy', 'joy', 'stress');
-
-        if (mood !== 'normal') {
-            document.body.classList.add(`${mood}-mode`);
-            if (avatar) avatar.classList.add(mood);
-        }
-    }
-}
-
-$('aiSendBtn').addEventListener('click', sendAIMessage);
-els.aiInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendAIMessage(); });
-
-$$('.ai-suggestion-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-        els.aiInput.value = chip.textContent.replace(/^[^\s]+\s/, '');
-        switchPage('pageAI');
-        setTimeout(sendAIMessage, 200);
-    });
-});
-
 // ===== SEARCH =====
 els.searchInput.addEventListener('input', () => {
     const q = els.searchInput.value.trim().toLowerCase();
@@ -1239,20 +771,15 @@ $('toggleDarkMode')?.addEventListener('click', function() {
 // Accent Color Theme
 function applyTheme(theme) {
     state.currentTheme = theme;
-    // Remove all theme classes
     document.body.classList.forEach(cls => {
         if (cls.startsWith('theme-')) document.body.classList.remove(cls);
     });
-    // Add new theme class if not default
     if (theme !== 'default') {
         document.body.classList.add(`theme-${theme}`);
     }
-    
-    // Update active dot
     $$('#accentPicker .accent-dot').forEach(dot => {
         dot.classList.toggle('active', dot.dataset.theme === theme);
     });
-    
     localStorage.setItem('muzi_theme', theme);
 }
 
@@ -1314,36 +841,26 @@ function renderSettingsProfileList() {
         </div>`;
     }).join('');
 
-    // Handle Item Click (Edit)
     list.querySelectorAll('.settings-profile-item').forEach(item => {
         item.addEventListener('click', (e) => {
-            // Don't trigger edit if clicking the visibility toggle
             if (e.target.closest('.toggle-switch.mini')) return;
-
             const profileId = item.dataset.editProfileId;
-            // Set as "editing" target, but keep current active profile for logic
-            state.editingProfileId = profileId; // Use a temporary state for editing
-            
-            // Populate modal with this profile's data
+            state.editingProfileId = profileId;
             const p = getProfileById(profileId);
             state.profileEditColor = p.color;
             state.profileEditImage = p.image;
             $('profileNameInput').value = p.name;
-            
             $('profileImageRemoveBtn').style.display = p.image ? 'inline-block' : 'none';
             updateProfileUI();
-            
             $('profileModalOverlay').classList.add('open');
         });
     });
 
-    // Handle Visibility Toggle
     list.querySelectorAll('[data-toggle-visibility-id]').forEach(toggle => {
         toggle.addEventListener('click', (e) => {
             e.stopPropagation();
             const id = String(toggle.dataset.toggleVisibilityId);
             toggle.classList.toggle('active');
-            
             if (toggle.classList.contains('active')) {
                 if (!state.visibleProfileIds.includes(id)) {
                     state.visibleProfileIds.push(id);
@@ -1351,13 +868,11 @@ function renderSettingsProfileList() {
             } else {
                 state.visibleProfileIds = state.visibleProfileIds.filter(vid => vid !== id);
             }
-            
             localStorage.setItem('muzi_visible_profiles', JSON.stringify(state.visibleProfileIds));
             renderCalendar();
         });
     });
 }
-
 
 // ===== PROFILE EDIT MODAL =====
 const profileModalOverlay = $('profileModalOverlay');
@@ -1365,15 +880,13 @@ const profileImageInput = $('profileImageInput');
 const profileNameInput = $('profileNameInput');
 
 $('editProfileBtn')?.addEventListener('click', () => {
-    state.editingProfileId = null; // Default to active profile
+    state.editingProfileId = null;
     state.profileEditColor = state.profile.color;
     state.profileEditImage = state.profile.image;
     profileNameInput.value = state.profile.name;
-    
     $$('#profileColorPicker .color-dot').forEach(d => {
         d.classList.toggle('active', d.dataset.color === state.profileEditColor);
     });
-
     $('profileImageRemoveBtn').style.display = state.profileEditImage ? 'inline-block' : 'none';
     updateProfileUI();
     profileModalOverlay.classList.add('open');
@@ -1435,12 +948,10 @@ profileImageInput?.addEventListener('change', (e) => {
                 const size = Math.min(img.width, img.height);
                 const sx = (img.width - size) / 2;
                 const sy = (img.height - size) / 2;
-                
                 canvas.width = 150;
                 canvas.height = 150;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, sx, sy, size, size, 0, 0, 150, 150);
-                
                 state.profileEditImage = canvas.toDataURL('image/jpeg', 0.8);
                 $('profileImageRemoveBtn').style.display = 'inline-block';
                 updateProfileUI();
@@ -1462,7 +973,6 @@ profileNameInput?.addEventListener('input', updateProfileUI);
 
 // ===== INIT =====
 function init() {
-    // Migrate old single-profile data to multi-profile
     const oldProfile = localStorage.getItem('muzi_profile');
     if (oldProfile && !localStorage.getItem('muzi_profiles')) {
         try {
@@ -1475,22 +985,15 @@ function init() {
         } catch(e) {}
     }
 
-    // Restore dark mode
     const isDark = localStorage.getItem('muzi_dark_mode') !== 'false';
     const darkToggle = $('toggleDarkMode');
-    if (darkToggle) {
-        darkToggle.classList.toggle('active', isDark);
-    }
+    if (darkToggle) darkToggle.classList.toggle('active', isDark);
     document.body.classList.toggle('light-mode', !isDark);
 
-    // Restore accent theme
     applyTheme(state.currentTheme);
-
-    // Restore profile edit colors from active profile
     state.profileEditColor = state.profile.color;
     state.profileEditImage = state.profile.image;
 
-    // Restore settings toggles
     const sharedViewToggle = $('toggleSharedView');
     if (sharedViewToggle) sharedViewToggle.classList.toggle('active', state.sharedView);
     const colorBindingToggle = $('toggleColorBinding');
@@ -1500,13 +1003,7 @@ function init() {
     updateStats();
     updateProfileUI();
     renderSettingsProfileList();
-
-    // Init toggle visuals
     $$('.toggle-switch').forEach(updateToggleVisuals);
-
-    // Hide AI input bar initially
-    const aiBar = document.querySelector('.ai-input-bar');
-    if (aiBar) aiBar.style.display = 'none';
 
     if (!localStorage.getItem('muzi_first_open_done_v3')) {
         const onboardingOverlay = $('onboardingOverlay');
@@ -1610,11 +1107,7 @@ const CHANGELOG = [
                 title: 'Dein neuer Kalender',
                 desc: 'Monats-, Wochen- und Tagesansicht mit elegantem Dark Mode. Wische nach links/rechts um zwischen Monaten zu navigieren.'
             },
-            {
-                icon: '🐱',
-                title: 'Muzi AI Assistent',
-                desc: 'Dein intelligenter Helfer – frag nach Terminen oder lass dir deine Woche zusammenfassen.'
-            },
+
             {
                 icon: '🔍',
                 title: 'Termin-Suche',

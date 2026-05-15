@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#000000">
-    <meta name="description" content="Muzi – Dein intelligenter Kalender mit AI-Assistent. Übersichtlich, modern und im iOS 18 Design.">
+    <meta name="description" content="Muzi – Dein purer, manueller Kalender. Übersichtlich, modern und im iOS 18 Design.">
     <title>Muzi Kalender</title>
     <link rel="manifest" href="manifest.json">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -49,10 +49,7 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                 <span>Notizen</span>
             </a>
-            <a href="#" class="sidebar-nav-item" data-page="creative">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.5 1.5"/><path d="M14 11l5 5"/></svg>
-                <span>Creative Bar</span>
-            </a>
+
             <div class="sidebar-divider"></div>
             <a href="#" class="sidebar-nav-item" data-page="settings">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -98,33 +95,7 @@
 
         </div>
 
-        <!-- AI Page -->
-        <div class="page" id="pageAI">
-            <header class="top-header header-center">
-                <h1 class="header-month">Muzi AI</h1>
-            </header>
-            <div class="ai-chat-container">
-                    <div class="ai-avatar-large" id="aiAvatar">
-                        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 6.42-2.45.44 2.19-.56 3.52-1.23 4.14 1.04 1.2 1.58 3.05 1.58 5.05 0 5.5-4.5 10-10 10S1 17.5 1 12c0-2 1.5-3.85 1.58-5.05-.67-.62-1.67-1.95-1.23-4.14 1.39-.39 4.64.45 6.42 2.45.65-.17 1.33-.26 2-.26Z"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><circle cx="9" cy="11" r="1"/><circle cx="15" cy="11" r="1"/></svg>
-                        <div class="cat-eyes">
-                            <div class="eye"></div>
-                            <div class="eye"></div>
-                        </div>
-                    </div>
-                <div class="ai-suggestions">
-                    <button class="ai-suggestion-chip">📅 Was steht heute an?</button>
-                    <button class="ai-suggestion-chip">⏰ Erinnere mich morgen um 9</button>
-                    <button class="ai-suggestion-chip">📋 Zeig meine Woche</button>
-                </div>
-                <div class="ai-messages" id="aiMessages"></div>
-            </div>
-            <div class="ai-input-bar">
-                <input type="text" class="ai-input" id="aiInput" placeholder="Schreibe eine Nachricht...">
-                <button class="ai-send-btn" id="aiSendBtn" aria-label="Nachricht senden">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-                </button>
-            </div>
-        </div>
+
 
         <!-- Profile Page -->
         <div class="page" id="pageProfile">
@@ -269,23 +240,12 @@
             <div class="notes-container" style="padding: 20px;">
                 <div class="empty-state">
                     <p>Keine Notizen</p>
-                    <span>Muzi erstellt automatisch Notiz-Slots für deine Termine.</span>
+                    <span>Erstelle deine Termine manuell im Kalender.</span>
                 </div>
             </div>
         </div>
 
-        <!-- Creative Bar Page -->
-        <div class="page" id="pageCreative">
-            <header class="top-header header-center">
-                <h1 class="header-month">Creative Bar</h1>
-            </header>
-            <div class="creative-container" style="padding: 20px;">
-                <div class="creative-card" style="background: var(--surface); padding: 20px; border-radius: 20px; border: 1px solid var(--border);">
-                    <h3>Aktuelle Projekte</h3>
-                    <p style="color: var(--text3); font-size: 14px; margin-top: 8px;">Deine kreativen Projekte werden hier synchronisiert.</p>
-                </div>
-            </div>
-        </div>
+
 
         <!-- Search Page -->
         <div class="page" id="pageSearch">
@@ -328,12 +288,7 @@
             </div>
             <span class="nav-label">Kalender</span>
         </button>
-        <button class="nav-item" data-page="pageAI" id="navAI" aria-label="AI Assistent">
-            <div class="nav-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 6.42-2.45.44 2.19-.56 3.52-1.23 4.14 1.04 1.2 1.58 3.05 1.58 5.05 0 5.5-4.5 10-10 10S1 17.5 1 12c0-2 1.5-3.85 1.58-5.05-.67-.62-1.67-1.95-1.23-4.14 1.39-.39 4.64.45 6.42 2.45.65-.17 1.33-.26 2-.26Z"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/></svg>
-            </div>
-            <span class="nav-label">AI</span>
-        </button>
+
         <button class="nav-item" data-page="pageSettings" id="navSettings" aria-label="Einstellungen">
             <div class="nav-icon">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
