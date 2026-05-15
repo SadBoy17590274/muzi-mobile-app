@@ -1457,3 +1457,43 @@ if (document.readyState === 'loading') {
     updateProfileUI();
 }
 
+// ===== GOOGLE PRIVACY MODAL =====
+function openGooglePrivacyModal() {
+    const overlay = $('googlePrivacyModalOverlay');
+    const check1 = $('googlePrivacyCheck1');
+    const check2 = $('googlePrivacyCheck2');
+    const confirmBtn = $('googlePrivacyConfirmBtn');
+    
+    // Reset state
+    check1.checked = false;
+    check2.checked = false;
+    confirmBtn.disabled = true;
+    overlay.classList.add('open');
+    
+    const updateBtn = () => {
+        confirmBtn.disabled = !(check1.checked && check2.checked);
+    };
+    
+    check1.onclick = updateBtn;
+    check2.onclick = updateBtn;
+    
+    confirmBtn.onclick = () => {
+        overlay.classList.remove('open');
+        // Simulate Google Sign-In or connection
+        alert('Google Kalender Verbindung wird gestartet...');
+    };
+}
+
+$$('.google-sync-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        openGooglePrivacyModal();
+    });
+});
+
+$('googlePrivacyModalOverlay')?.addEventListener('click', e => {
+    if (e.target === $('googlePrivacyModalOverlay')) {
+        $('googlePrivacyModalOverlay').classList.remove('open');
+    }
+});
+

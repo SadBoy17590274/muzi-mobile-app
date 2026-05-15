@@ -571,6 +571,45 @@
         </div>
     </div>
 
+    <!-- Google Privacy Policy Modal -->
+    <div class="modal-overlay" id="googlePrivacyModalOverlay">
+        <div class="modal" id="googlePrivacyModal" style="border-radius: 28px;">
+            <div class="modal-handle"></div>
+            <div class="modal-header" style="justify-content: center; padding-top: 24px; border-bottom: none;">
+                <h2 class="modal-title" style="font-size: 22px; font-weight: 700;">Google Integration</h2>
+            </div>
+            <div class="modal-body" style="padding-top: 8px; padding-bottom: 32px;">
+                <div class="privacy-content" style="background: var(--surface2); padding: 20px; border-radius: 20px; margin-bottom: 24px; font-size: 14px; color: var(--text2); line-height: 1.6; max-height: 300px; overflow-y: auto; border: 1px solid var(--border);">
+                    <h3 style="color: var(--text); margin-bottom: 12px; font-size: 16px;">Verbindung mit Google</h3>
+                    <p style="margin-bottom: 16px;">
+                        Durch das Verbinden deines Google-Kontos kann Muzi deine Google Kalender-Termine direkt in der App anzeigen und synchronisieren.
+                    </p>
+                    <h3 style="color: var(--text); margin-bottom: 12px; font-size: 16px;">Datennutzung</h3>
+                    <p style="margin-bottom: 16px;">
+                        Muzi liest deine Kalenderdaten, um sie lokal in der App darzustellen. Es werden keine Daten ohne deine explizite Zustimmung an Dritte gesendet.
+                    </p>
+                    <h3 style="color: var(--text); margin-bottom: 12px; font-size: 16px;">Widerruf</h3>
+                    <p>
+                        Du kannst die Verbindung zu deinem Google-Konto jederzeit in den Einstellungen wieder trennen. Dabei werden alle synchronisierten Google-Daten aus Muzi entfernt.
+                    </p>
+                </div>
+
+                <div class="privacy-agreements" style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px;">
+                    <label class="checkbox-container" style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
+                        <input type="checkbox" id="googlePrivacyCheck1" style="width: 22px; height: 22px; margin-top: 2px; accent-color: var(--accent); border-radius: 6px;">
+                        <span style="font-size: 14px; color: var(--text2);">Ich stimme zu, dass Muzi auf meine Google Kalender-Daten zugreifen darf.</span>
+                    </label>
+                    <label class="checkbox-container" style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
+                        <input type="checkbox" id="googlePrivacyCheck2" style="width: 22px; height: 22px; margin-top: 2px; accent-color: var(--accent); border-radius: 6px;">
+                        <span style="font-size: 14px; color: var(--text2);">Ich habe die Datenschutzhinweise zur Google-Integration verstanden.</span>
+                    </label>
+                </div>
+
+                <button id="googlePrivacyConfirmBtn" disabled style="width: 100%; padding: 16px; background: var(--accent); color: var(--bg); border: none; border-radius: 16px; font-weight: 700; font-size: 17px; cursor: pointer; transition: all 0.2s; opacity: 0.5;">Konto verbinden</button>
+            </div>
+        </div>
+    </div>
+
     <!-- App Logic -->
     <script src="app.js"></script>
 </body>
