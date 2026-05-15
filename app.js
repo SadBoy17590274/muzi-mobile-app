@@ -1005,6 +1005,17 @@ function init() {
     renderSettingsProfileList();
     $$('.toggle-switch').forEach(updateToggleVisuals);
 
+    // Google Sync Status
+    const googleToken = localStorage.getItem('muzi_google_token');
+    const googleExpiry = localStorage.getItem('muzi_google_token_expiry');
+    if (googleToken && googleExpiry && Date.now() < parseInt(googleExpiry)) {
+        const btn = $('googleSyncBtn');
+        if (btn) {
+            btn.textContent = 'Verbunden';
+            btn.classList.add('connected');
+        }
+    }
+
     if (!localStorage.getItem('muzi_first_open_done_v3')) {
         const onboardingOverlay = $('onboardingOverlay');
         if (onboardingOverlay) {
@@ -1018,6 +1029,128 @@ function init() {
 }
 
 init();
+
+// ===== GOOGLE CALENDAR SYNC =====
+const GOOGLE_CLIENT_ID = '609973725824-r3laiud55hlke4tr82d6rkg7n2le2893.apps.googleusercontent.com';
+const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/calendar.events.readonly';
+
+let tokenClient;
+let gapiInited = false;
+let gisInited = false;
+
+function initGoogleSDK() {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: GOOGLE_SCOPES,
+        callback: (tokenResponse) => {
+            if (tokenResponse && tokenResponse.access_token) {
+                localStorage.setItem('muzi_google_token', tokenResponse.access_token);
+                localStorage.setItem('muzi_google_token_expiry', Date.now() + (tokenResponse.expires_in * 1000));
+                handleGoogleSync();
+            }
+        },
+    });
+    gisInited = true;
+}
+
+// Load SDK on window load
+window.addEventListener('load', () => {
+    // GIS SDK is loaded via script tag in index.html
+    // We wait a bit to ensure 'google' object is available
+    const checkGIS = setInterval(() => {
+        if (typeof google !== 'undefined') {
+            clearInterval(checkGIS);
+            initGoogleSDK();
+        }
+    }, 100);
+});
+
+async function handleGoogleSync() {
+    const token = localStorage.getItem('muzi_google_token');
+    const expiry = localStorage.getItem('muzi_google_token_expiry');
+    
+    if (!token || (expiry && Date.now() > expiry)) {
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+        return;
+    }
+
+    const btn = $('googleSyncBtn');
+    if (btn) {
+        btn.textContent = 'Synchronisiere...';
+        btn.disabled = true;
+    }
+
+    try {
+        const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.status === 401) {
+            // Token expired or invalid
+            localStorage.removeItem('muzi_google_token');
+            tokenClient.requestAccessToken();
+            return;
+        }
+
+        const data = await response.json();
+        if (data.items) {
+            importGoogleEvents(data.items);
+        }
+        
+        if (btn) {
+            btn.textContent = 'Verbunden';
+            btn.classList.add('connected');
+            btn.disabled = false;
+        }
+    } catch (err) {
+        console.error('Google Sync Error:', err);
+        if (btn) {
+            btn.textContent = 'Fehler';
+            btn.disabled = false;
+        }
+    }
+}
+
+function importGoogleEvents(googleEvents) {
+    let newEventsCount = 0;
+    googleEvents.forEach(ge => {
+        // Skip if already exists (simple ID check)
+        if (state.events.some(e => e.googleId === ge.id)) return;
+
+        const start = ge.start.dateTime || ge.start.date;
+        const end = ge.end.dateTime || ge.end.date;
+        
+        if (!start) return;
+
+        const startDate = new Date(start);
+        const endDate = new Date(end || start);
+
+        const newEvent = {
+            id: 'google_' + ge.id,
+            googleId: ge.id,
+            title: ge.summary || 'Google Termin',
+            date: formatDate(startDate),
+            startTime: ge.start.dateTime ? startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '00:00',
+            endTime: ge.end.dateTime ? endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '23:59',
+            color: state.profile.color, // Default to current profile color
+            urgency: 100,
+            notes: ge.description || '',
+            profileId: state.activeProfileId
+        };
+
+        state.events.push(newEvent);
+        newEventsCount++;
+    });
+
+    if (newEventsCount > 0) {
+        saveEvents();
+        renderCalendar();
+    }
+}
+
+$('googleSyncBtn')?.addEventListener('click', handleGoogleSync);
 
 // ===== ONBOARDING =====
 let onboardingColor = '#34C759';

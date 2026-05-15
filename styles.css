@@ -1314,6 +1314,28 @@ body {
     }
 }
 
+.google-sync-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 8px 16px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+.google-sync-btn:active {
+    transform: scale(0.96);
+    background: var(--surface3);
+}
+.google-sync-btn.connected {
+    background: #34C759;
+    color: white;
+    border-color: transparent;
+}
+
 /* ========== ACCENT PICKER STYLES ========== */
 .accent-picker {
     display: flex;
