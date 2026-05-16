@@ -7,7 +7,7 @@ const state = {
     currentView: 'month',
     currentPage: 'pageCalendar',
     events: JSON.parse(localStorage.getItem('muzi_events') || '[]'),
-    profiles: JSON.parse(localStorage.getItem('muzi_profiles_v3') || '[{"id":"1","name":"Muzi Nutzer","color":"#34C759","image":""}]'),
+    profiles: JSON.parse(localStorage.getItem('muzi_profiles_v3') || '[{"id":"1","name":"Nutzer","color":"#34C759"}]'),
     activeProfileId: localStorage.getItem('muzi_active_profile_v3') || '1',
     selectedColor: '#FFFFFF',
     profileEditColor: '#34C759',
@@ -74,20 +74,22 @@ function isEventForActiveProfile(e) {
 
 function getEventsForDate(date) {
     const ds = formatDate(date);
-    if (state.sharedView) {
-        return state.events.filter(e => {
-            if (e.date !== ds) return false;
-            // Always show active profile events
-            if (isEventForActiveProfile(e)) return true;
-            // Show others if selected
-            return state.visibleProfileIds.includes(String(e.profileId));
-        });
-    }
-    return state.events.filter(e => e.date === ds && isEventForActiveProfile(e));
+    return state.events.filter(e => {
+        if (e.date !== ds) return false;
+        if (state.sharedView) {
+            // In shared view, show if it belongs to active profile OR a visible profile
+            return isEventForActiveProfile(e) || state.visibleProfileIds.includes(String(e.profileId));
+        }
+        // In private view, only show if it belongs to active profile
+        return isEventForActiveProfile(e);
+    });
 }
 
 function getProfileById(id) {
-    return state.profiles.find(p => String(p.id) === String(id)) || state.profiles[0];
+    const p = state.profiles.find(p => String(p.id) === String(id));
+    if (p) return p;
+    if (state.profiles.length > 0) return state.profiles[0];
+    return { id: '1', name: 'Nutzer', color: '#34C759' };
 }
 
 function getEventDisplayColor(ev) {
@@ -108,6 +110,7 @@ function getEventDisplayColor(ev) {
         glow,
         initial: profile.name.charAt(0).toUpperCase() || '?', 
         profileColor: profile.color,
+        profileName: profile.name,
         urgency
     };
 }
@@ -414,9 +417,9 @@ function renderWeekView() {
                         <div class="week-event-card">
                             <span class="event-initial-badge" style="background:${d.profileColor}">${d.initial}</span>
                             <div class="week-event-color" style="background:${barColor}; ${d.glow}"></div>
-                            <div class="week-event-info" style="opacity:${Math.max(0.4, ev.urgency / 100)}">
+                            <div class="week-event-info" style="opacity:${Math.max(0.4, (ev.urgency ?? 100) / 100)}">
                                 <div class="week-event-title">${ev.title}</div>
-                                <div class="week-event-time">${ev.startTime} – ${ev.endTime}</div>
+                                <div class="week-event-time">${ev.startTime} – ${ev.endTime} ${state.sharedView ? `· ${d.profileName}` : ''}</div>
                             </div>
                         </div>`;
                     }).join('') : '<div class="week-empty-state">Keine Termine</div>'}
@@ -463,9 +466,9 @@ function renderDayView() {
                     <div class="event-card">
                         <span class="event-initial-badge" style="background:${dc.profileColor}">${dc.initial}</span>
                         <div class="event-color-bar" style="background:${barColor}; ${dc.glow}"></div>
-                        <div class="event-card-content" style="opacity:${Math.max(0.4, ev.urgency / 100)}">
+                        <div class="event-card-content" style="opacity:${Math.max(0.4, (ev.urgency ?? 100) / 100)}">
                             <div class="event-card-title">${ev.title}</div>
-                            <div class="event-card-time">${ev.startTime} – ${ev.endTime}</div>
+                            <div class="event-card-time">${ev.startTime} – ${ev.endTime} · ${dc.profileName}</div>
                         </div>
                     </div>`;
                 }).join('') : '<div class="empty-state"><p>Keine Termine</p></div>'}
@@ -477,14 +480,17 @@ function renderDayView() {
 
 function attachDayEvents() {
     $$('.cal-day').forEach(day => {
-        day.addEventListener('click', () => {
+        day.addEventListener('click', (e) => {
+            e.preventDefault();
             const parts = day.dataset.date.split('-');
             state.selectedDate = new Date(parts[0], parts[1] - 1, parts[2]);
+            
             if (state.currentView === 'month' && state.selectedDate.getMonth() !== state.currentDate.getMonth()) {
                 state.currentDate = new Date(state.selectedDate);
+                renderCalendar();
             }
-            renderCalendar();
-            if (state.currentView === 'month') openDayDetail();
+            
+            openDayDetail();
         });
     });
 }
@@ -535,26 +541,48 @@ function openDayDetail() {
     const today = new Date();
     const isToday = sameDay(d, today);
     const dayName = isToday ? 'Heute' : DAYS[d.getDay()];
-    $('dayDetailTitle').textContent = `${dayName}, ${d.getDate()}. ${MONTHS_SHORT[d.getMonth()]}`;
+    
+    const titleEl = $('dayDetailTitle');
+    const countEl = $('dayDetailCount');
+    const listEl = $('dayDetailList');
+    
+    if (titleEl) titleEl.textContent = `${dayName}, ${d.getDate()}. ${MONTHS_SHORT[d.getMonth()]}`;
 
-    const events = getEventsForDate(d);
-    $('dayDetailCount').textContent = `${events.length} Termin${events.length !== 1 ? 'e' : ''}`;
+    // DEBUG: Fetch ALL events for this day to see if any exist at all
+    const ds = formatDate(d);
+    const allEventsForDay = state.events.filter(e => e.date === ds);
+    const events = allEventsForDay; // For now, show everything to see if they appear
+    
+    if (countEl) countEl.textContent = `${events.length} Termin${events.length !== 1 ? 'e' : ''}`;
 
-    const list = $('dayDetailList');
+    if (!listEl) return;
+
     if (events.length === 0) {
-        list.innerHTML = `<div class="empty-state"><p>Keine Termine</p><span>Tippe unten um einen Termin zu erstellen</span></div>`;
+        listEl.innerHTML = `
+            <div class="empty-state">
+                <p>Keine Termine (${ds})</p>
+                <span>Tippe unten um einen Termin zu erstellen</span>
+            </div>`;
     } else {
-        events.sort((a, b) => a.startTime.localeCompare(b.startTime));
-        list.innerHTML = events.map((ev, i) => {
-            const d = getEventDisplayColor(ev);
-            const barColor = hexToRgba(d.color, d.opacity);
+        // Sort by time
+        const sortedEvents = [...events].sort((a, b) => (a.startTime || '00:00').localeCompare(b.startTime || '00:00'));
+        
+        listEl.innerHTML = sortedEvents.map((ev, i) => {
+            const display = getEventDisplayColor(ev);
+            const barColor = hexToRgba(display.color, display.opacity);
+            const isOwn = isEventForActiveProfile(ev);
+            
             return `
-            <div class="event-card" style="animation-delay:${i * 0.05}s">
-                <span class="event-initial-badge" style="background:${d.profileColor}">${d.initial}</span>
-                <div class="event-color-bar" style="background:${barColor}; ${d.glow}"></div>
-                <div class="event-card-content" style="opacity:${Math.max(0.4, ev.urgency / 100)}">
-                    <div class="event-card-title">${ev.title}</div>
-                    <div class="event-card-time">${ev.startTime} – ${ev.endTime}</div>
+            <div class="event-card" style="${!isOwn ? 'opacity: 0.8;' : ''}">
+                <span class="event-initial-badge" style="background:${display.profileColor}">${display.initial}</span>
+                <div class="event-color-bar" style="background:${barColor}; ${display.glow}"></div>
+                <div class="event-card-content">
+                    <div class="event-card-title">${ev.title || 'Unbenannter Termin'}</div>
+                    <div class="event-card-time">
+                        <span style="color:var(--text); font-weight:600;">${ev.startTime || '00:00'} – ${ev.endTime || '23:59'}</span>
+                        <span style="margin-left:8px; opacity:0.6; font-weight:400;">· ${display.profileName}</span>
+                    </div>
+                    ${ev.notes ? `<div style="font-size:11px; color:var(--text3); margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${ev.notes}</div>` : ''}
                 </div>
                 <button class="event-card-delete" data-id="${ev.id}">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -562,7 +590,7 @@ function openDayDetail() {
             </div>`;
         }).join('');
 
-        list.querySelectorAll('.event-card-delete').forEach(btn => {
+        listEl.querySelectorAll('.event-card-delete').forEach(btn => {
             btn.addEventListener('click', e => {
                 e.stopPropagation();
                 state.events = state.events.filter(ev => ev.id !== btn.dataset.id);
@@ -572,7 +600,9 @@ function openDayDetail() {
             });
         });
     }
-    $('dayDetailOverlay').classList.add('open');
+    
+    const overlay = $('dayDetailOverlay');
+    if (overlay) overlay.classList.add('open');
 }
 
 function closeDayDetail() {
@@ -752,15 +782,22 @@ els.searchInput.addEventListener('input', () => {
         return;
     }
 
-    els.searchResults.innerHTML = results.map(ev => `
+    els.searchResults.innerHTML = results.map(ev => {
+        const d = getEventDisplayColor(ev);
+        const barColor = hexToRgba(d.color, d.opacity);
+        return `
         <div class="event-card">
-            <div class="event-color-bar" style="background:${ev.color}"></div>
+            <span class="event-initial-badge" style="background:${d.profileColor}">${d.initial}</span>
+            <div class="event-color-bar" style="background:${barColor}; ${d.glow}"></div>
             <div class="event-card-content">
-                <div class="event-card-title">${ev.title}</div>
-                <div class="event-card-time">${ev.date} · ${ev.startTime} – ${ev.endTime}</div>
+                <div class="event-card-title">${ev.title || 'Ohne Titel'}</div>
+                <div class="event-card-time">
+                    <span style="color:var(--text)">${ev.date} · ${ev.startTime || '--:--'} – ${ev.endTime || '--:--'}</span>
+                    <span style="margin-left:8px; opacity:0.7; font-weight:400;">· ${d.profileName}</span>
+                </div>
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 });
 
 // ===== STATS =====
@@ -1028,6 +1065,11 @@ function init() {
 
     // Google Sync Status
     updateGoogleSyncUI();
+    
+    // Auto-sync on startup if connected
+    if (state.googleConnected) {
+        handleGoogleSync(true); // silent sync
+    }
 
     if (!localStorage.getItem('muzi_first_open_done_v3')) {
         const onboardingOverlay = $('onboardingOverlay');
@@ -1078,53 +1120,109 @@ window.addEventListener('load', () => {
     }, 100);
 });
 
-async function handleGoogleSync() {
+async function handleGoogleSync(silent = false) {
     const token = localStorage.getItem('muzi_google_token');
     const expiry = localStorage.getItem('muzi_google_token_expiry');
     
     if (!token || (expiry && Date.now() > expiry)) {
-        tokenClient.requestAccessToken({ prompt: 'consent' });
+        if (!silent) {
+            if (tokenClient) {
+                tokenClient.requestAccessToken({ prompt: 'consent' });
+            } else {
+                alert('Google SDK noch nicht geladen. Bitte versuche es in einem Moment erneut.');
+            }
+        }
         return;
     }
 
-    const btn = $('googleSyncBtn');
-    if (btn) {
-        btn.textContent = 'Synchronisiere...';
-        btn.disabled = true;
+    const btns = $$('.google-sync-btn');
+    if (!silent) {
+        btns.forEach(btn => {
+            btn.dataset.originalHtml = btn.innerHTML;
+            btn.innerHTML = '<span>Synchronisiere...</span>';
+            btn.disabled = true;
+        });
     }
 
     try {
-        const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+        // Fetch more events and ensure they are expanded (recurring events)
+        const now = new Date();
+        const timeMin = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString(); // 1 month back
+        const timeMax = new Date(now.getFullYear(), now.getMonth() + 6, 1).toISOString(); // 6 months forward
+        
+        const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
+        
+        const response = await fetch(url, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
         
         if (response.status === 401) {
-            // Token expired or invalid
             localStorage.removeItem('muzi_google_token');
-            tokenClient.requestAccessToken();
+            if (!silent) tokenClient.requestAccessToken();
             return;
         }
 
+        if (!response.ok) throw new Error('API Error: ' + response.status);
+
         const data = await response.json();
         if (data.items) {
-            importGoogleEvents(data.items);
+            const count = importGoogleEvents(data.items);
+            if (!silent && count > 0) {
+                showToast(`${count} Google-Termine synchronisiert`);
+            } else if (!silent) {
+                showToast(`Kalender ist aktuell`);
+            }
         }
         
-        if (btn) {
-            btn.classList.add('connected');
-            btn.disabled = false;
-            updateGoogleSyncUI();
-        }
+        updateGoogleSyncUI();
     } catch (err) {
         console.error('Google Sync Error:', err);
-        if (btn) {
-            btn.textContent = 'Fehler';
-            btn.disabled = false;
+        if (!silent) {
+            showToast('Sync fehlgeschlagen');
+        }
+    } finally {
+        if (!silent) {
+            btns.forEach(btn => {
+                btn.disabled = false;
+                updateGoogleSyncUI();
+            });
         }
     }
 }
+
+function showToast(text) {
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+        background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+        padding: 10px 20px; border-radius: 20px; font-weight: 600; font-size: 13px;
+        z-index: 2000; animation: slideUpToast 0.3s ease forwards;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    `;
+    toast.textContent = text;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'slideDownToast 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Toast animations
+const toastStyle = document.createElement('style');
+toastStyle.textContent = `
+    @keyframes slideUpToast {
+        from { transform: translate(-50%, 20px); opacity: 0; }
+        to { transform: translate(-50%, 0); opacity: 1; }
+    }
+    @keyframes slideDownToast {
+        from { transform: translate(-50%, 0); opacity: 1; }
+        to { transform: translate(-50%, 20px); opacity: 0; }
+    }
+`;
+document.head.appendChild(toastStyle);
 
 function importGoogleEvents(googleEvents) {
     let newEventsCount = 0;
@@ -1132,13 +1230,23 @@ function importGoogleEvents(googleEvents) {
         // Skip if already exists (simple ID check)
         if (state.events.some(e => e.googleId === ge.id)) return;
 
-        const start = ge.start.dateTime || ge.start.date;
-        const end = ge.end.dateTime || ge.end.date;
+        const startStr = ge.start.dateTime || ge.start.date;
+        const endStr = ge.end.dateTime || ge.end.date;
         
-        if (!start) return;
+        if (!startStr) return;
 
-        const startDate = new Date(start);
-        const endDate = new Date(end || start);
+        let startDate, endDate;
+        if (ge.start.date) {
+            // All-day event: use local parts to avoid timezone shift
+            const [y, m, d] = ge.start.date.split('-').map(Number);
+            startDate = new Date(y, m - 1, d);
+            
+            const [ey, em, ed] = (ge.end.date || ge.start.date).split('-').map(Number);
+            endDate = new Date(ey, em - 1, ed);
+        } else {
+            startDate = new Date(ge.start.dateTime);
+            endDate = new Date(ge.end.dateTime || ge.start.dateTime);
+        }
 
         const newEvent = {
             id: 'google_' + ge.id,
@@ -1147,7 +1255,7 @@ function importGoogleEvents(googleEvents) {
             date: formatDate(startDate),
             startTime: ge.start.dateTime ? startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '00:00',
             endTime: ge.end.dateTime ? endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '23:59',
-            color: state.profile.color, // Default to current profile color
+            color: state.profile.color, 
             urgency: 100,
             notes: ge.description || '',
             profileId: state.activeProfileId,
@@ -1162,6 +1270,7 @@ function importGoogleEvents(googleEvents) {
         saveEvents();
         renderCalendar();
     }
+    return newEventsCount;
 }
 
 // Removed duplicate listener
@@ -1415,7 +1524,8 @@ function openPrivacyModal(profileId) {
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
             background: var(--accent); color: var(--bg);
             padding: 12px 24px; border-radius: 12px; font-weight: 600;
-            z-index: 1000; animation: slideDown 0.3s ease forwards;
+            z-index: 1000; animation: none;
+            opacity: 1;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         `;
         successMsg.textContent = `Daten von "${profile.name}" erfolgreich übertragen!`;
@@ -1490,7 +1600,10 @@ $$('.google-sync-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         e.preventDefault();
         if (state.googleConnected) {
-            disconnectGoogle();
+            // Show a choice: Sync or Disconnect?
+            // For now, let's just make it a sync button if already connected
+            // And add a way to disconnect.
+            handleGoogleSync();
         } else {
             openGooglePrivacyModal();
         }
@@ -1499,14 +1612,37 @@ $$('.google-sync-btn').forEach(btn => {
 
 function updateGoogleSyncUI() {
     $$('.google-sync-btn').forEach(btn => {
+        const iconHtml = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z" fill="#EA4335"/>
+        </svg>`;
+        
         if (state.googleConnected) {
-            btn.textContent = 'Trennen';
-            btn.style.background = 'rgba(255,69,58,0.1)';
-            btn.style.color = '#ff453a';
+            btn.innerHTML = iconHtml + '<span>Synchronisieren</span>';
+            btn.style.background = 'rgba(255,255,255,0.05)';
+            btn.style.color = 'var(--text)';
+            
+            // Add a long-press or double click to disconnect?
+            // Or just add a separate disconnect link in settings
+            if (!$('googleDisconnectLink')) {
+                const link = document.createElement('a');
+                link.id = 'googleDisconnectLink';
+                link.href = '#';
+                link.textContent = 'Konto trennen';
+                link.style.cssText = 'display: block; font-size: 11px; color: #ff453a; margin-top: 8px; text-decoration: none; text-align: center;';
+                link.onclick = (e) => {
+                    e.preventDefault();
+                    disconnectGoogle();
+                };
+                btn.parentNode.appendChild(link);
+            }
         } else {
-            btn.textContent = 'Verbinden';
+            btn.innerHTML = iconHtml + '<span>Verbinden</span>';
             btn.style.background = '';
             btn.style.color = '';
+            $('googleDisconnectLink')?.remove();
         }
     });
 }

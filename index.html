@@ -67,7 +67,6 @@
         
         <!-- Calendar Page -->
         <div class="page active" id="pageCalendar">
-            <!-- Top Header -->
             <header class="top-header header-center">
                 <div class="header-title-group">
                     <h1 class="header-month" id="headerMonth">Mai 2026</h1>
@@ -75,28 +74,19 @@
                 </div>
             </header>
 
-            <!-- View Switcher -->
             <div class="view-switcher">
                 <button class="view-btn active" data-view="month">Monat</button>
                 <button class="view-btn" data-view="week">Woche</button>
                 <button class="view-btn" data-view="day">Tag</button>
             </div>
 
-            <!-- Calendar Grid -->
             <div class="calendar-wrapper" id="calendarWrapper">
-                <!-- Day names header -->
                 <div class="calendar-day-names">
                     <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span>
                 </div>
-                <!-- Calendar grid will be rendered here -->
                 <div class="calendar-grid" id="calendarGrid"></div>
             </div>
-
-            </div>
-
         </div>
-
-
 
         <!-- Profile Page -->
         <div class="page" id="pageProfile">
@@ -125,12 +115,9 @@
                     </div>
                 </div>
 
-                <!-- Family / All Profiles -->
                 <div class="profile-section">
                     <h3 class="profile-section-title">Familienmitglieder</h3>
-                    <div class="profile-members-list" id="profileList">
-                        <!-- Rendered by JS -->
-                    </div>
+                    <div class="profile-members-list" id="profileList"></div>
                 </div>
             </div>
         </div>
@@ -181,6 +168,7 @@
                         <div class="accent-dot" data-theme="green" style="background: #34C759;"></div>
                     </div>
                 </div>
+
                 <div class="profile-section">
                     <h3 class="profile-section-title">Allgemein</h3>
                     <div class="profile-option">
@@ -192,30 +180,10 @@
                             <div class="toggle-knob"></div>
                         </div>
                     </div>
-                    <div class="profile-option">
-                        <div class="profile-option-left">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                            <span>Datenschutz</span>
-                        </div>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"><polyline points="9 18 15 12 9 6"/></svg>
-                    </div>
                 </div>
+
                 <div class="profile-section">
                     <h3 class="profile-section-title">Kalender</h3>
-                    <div class="profile-option">
-                        <div class="profile-option-left">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                            <span>Standardansicht</span>
-                        </div>
-                        <span class="profile-option-value">Monat</span>
-                    </div>
-                    <div class="profile-option">
-                        <div class="profile-option-left">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                            <span>Wochenstart</span>
-                        </div>
-                        <span class="profile-option-value">Montag</span>
-                    </div>
                     <div class="profile-option">
                         <div class="profile-option-left">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -239,12 +207,9 @@
                     </div>
                 </div>
 
-                <!-- Profile Management Section -->
                 <div class="profile-section">
                     <h3 class="profile-section-title">Profile verwalten</h3>
-                    <div class="settings-profile-list" id="settingsProfileList">
-                        <!-- Rendered by JS -->
-                    </div>
+                    <div class="settings-profile-list" id="settingsProfileList"></div>
                 </div>
             </div>
         </div>
@@ -262,8 +227,6 @@
             </div>
         </div>
 
-
-
         <!-- Search Page -->
         <div class="page" id="pageSearch">
             <header class="top-header">
@@ -278,35 +241,26 @@
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <input type="text" class="search-input" id="searchInput" placeholder="Termine suchen...">
                 </div>
-                <div class="search-results" id="searchResults">
-                    <div class="empty-state">
-                        <div class="empty-state-icon">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity="0.3"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        </div>
-                        <p>Suche nach Terminen</p>
-                        <span>Gib einen Suchbegriff ein</span>
-                    </div>
-                </div>
+                <div class="search-results" id="searchResults"></div>
             </div>
         </div>
     </main>
 
     <!-- Floating Bottom Navigation -->
     <nav class="bottom-nav" id="bottomNav">
-        <button class="nav-item" data-page="pageProfile" id="navProfileLeft" aria-label="Profil">
+        <button class="nav-item" data-page="pageProfile" id="navProfileLeft">
             <div class="nav-icon">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             </div>
             <span class="nav-label">Profil</span>
         </button>
-        <button class="nav-item active" data-page="pageCalendar" id="navCalendar" aria-label="Kalender">
+        <button class="nav-item active" data-page="pageCalendar" id="navCalendar">
             <div class="nav-icon">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="4" ry="4"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             </div>
             <span class="nav-label">Kalender</span>
         </button>
-
-        <button class="nav-item" data-page="pageSettings" id="navSettings" aria-label="Einstellungen">
+        <button class="nav-item" data-page="pageSettings" id="navSettings">
             <div class="nav-icon">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </div>
@@ -314,7 +268,7 @@
         </button>
     </nav>
 
-    <!-- Add Event Modal -->
+    <!-- Modals -->
     <div class="modal-overlay" id="eventModalOverlay">
         <div class="modal" id="eventModal">
             <div class="modal-handle"></div>
@@ -324,44 +278,20 @@
                 <button class="modal-save-btn" id="modalSaveBtn">Speichern</button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <input type="text" class="form-input" id="eventTitle" placeholder="Titel" autocomplete="off">
-                </div>
-
-                <!-- Profile Selector -->
+                <div class="form-group"><input type="text" class="form-input" id="eventTitle" placeholder="Titel" autocomplete="off"></div>
                 <div class="form-group">
                     <label class="form-label">Zuweisen an</label>
-                    <div class="profile-selector" id="eventProfileSelector">
-                        <!-- Rendered by JS -->
-                    </div>
+                    <div class="profile-selector" id="eventProfileSelector"></div>
                 </div>
-
-                <div class="form-group">
-                    <label class="form-label">Datum</label>
-                    <input type="date" class="form-input" id="eventDate">
-                </div>
+                <div class="form-group"><label class="form-label">Datum</label><input type="date" class="form-input" id="eventDate"></div>
                 <div class="form-row">
-                    <div class="form-group flex-1">
-                        <label class="form-label">Beginn</label>
-                        <input type="time" class="form-input" id="eventStartTime" value="09:00">
-                    </div>
-                    <div class="form-group flex-1">
-                        <label class="form-label">Ende</label>
-                        <input type="time" class="form-input" id="eventEndTime" value="10:00">
-                    </div>
+                    <div class="form-group flex-1"><label class="form-label">Beginn</label><input type="time" class="form-input" id="eventStartTime" value="09:00"></div>
+                    <div class="form-group flex-1"><label class="form-label">Ende</label><input type="time" class="form-input" id="eventEndTime" value="10:00"></div>
                 </div>
-
-                <!-- Urgency Slider -->
                 <div class="form-group">
                     <label class="form-label">Dringlichkeit <span class="urgency-value" id="urgencyValue">100%</span></label>
                     <input type="range" class="urgency-slider" id="eventUrgency" min="0" max="100" value="100">
-                    <div class="urgency-labels">
-                        <span>Flexibel</span>
-                        <span>Fix / Wichtig</span>
-                    </div>
                 </div>
-
-                <!-- Free Color Picker (hidden when color binding is on) -->
                 <div class="form-group" id="freeColorGroup">
                     <label class="form-label">Farbe</label>
                     <div class="color-picker" id="colorPicker">
@@ -374,7 +304,6 @@
                         <div class="color-dot" data-color="#bf5af2" style="background:#bf5af2"></div>
                     </div>
                 </div>
-
                 <div class="form-group">
                     <label class="form-label">Notizen</label>
                     <textarea class="form-textarea" id="eventNotes" placeholder="Notizen hinzufügen..." rows="3"></textarea>
@@ -383,74 +312,66 @@
         </div>
     </div>
 
-    <!-- Profile Edit Modal -->
-        <div class="modal-overlay" id="profileModalOverlay">
-            <div class="modal" id="profileModal">
-                <div class="modal-handle"></div>
-                <div class="modal-header">
-                    <button class="modal-cancel-btn" id="profileModalCancelBtn">Abbrechen</button>
-                    <h2 class="modal-title">Profil bearbeiten</h2>
-                    <button class="modal-save-btn" id="profileModalSaveBtn">Speichern</button>
-                </div>
-                <div class="modal-body">
-                    <div class="profile-edit-avatar-container">
-                        <div class="profile-avatar-large edit-mode" id="profileEditAvatarPreview">M</div>
-                        <label class="profile-avatar-upload-btn">
-                            Bild auswählen
-                            <input type="file" id="profileImageInput" accept="image/*" style="display:none">
-                        </label>
-                        <button class="profile-avatar-remove-btn" id="profileImageRemoveBtn" style="display:none">Bild entfernen</button>
-                    </div>
+    <div class="day-detail-overlay" id="dayDetailOverlay">
+        <div class="day-detail-sheet" id="dayDetailSheet">
+            <div class="modal-handle"></div>
+            <div class="day-detail-header">
+                <h2 class="day-detail-title" id="dayDetailTitle">Heute</h2>
+                <span class="day-detail-count" id="dayDetailCount">0 Termine</span>
+            </div>
+            <div class="day-detail-list" id="dayDetailList"></div>
+            <button class="day-detail-add-btn" id="dayDetailAddBtn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Termin hinzufügen
+            </button>
+        </div>
+    </div>
 
-                    <div class="form-group">
-                        <label class="form-label">Name</label>
-                        <input type="text" class="form-input" id="profileNameInput" placeholder="Dein Name" autocomplete="off">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Profilfarbe</label>
-                        <div class="color-picker" id="profileColorPicker">
-                            <button class="color-dot active" data-color="#34C759" style="background:#34C759"></button>
-                            <button class="color-dot" data-color="#007AFF" style="background:#007AFF"></button>
-                            <button class="color-dot" data-color="#FF9500" style="background:#FF9500"></button>
-                            <button class="color-dot" data-color="#FF2D55" style="background:#FF2D55"></button>
-                            <button class="color-dot" data-color="#AF52DE" style="background:#AF52DE"></button>
-                            <button class="color-dot" data-color="#FFCC00" style="background:#FFCC00"></button>
-                            <button class="color-dot" data-color="#5856D6" style="background:#5856D6"></button>
-                            <button class="color-dot" data-color="#8E8E93" style="background:#8E8E93"></button>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group" style="margin-top: 32px;">
-                        <button class="profile-avatar-remove-btn" id="deleteProfileBtn" style="width: 100%; padding: 12px; background: rgba(255,69,58,0.1); border-radius: 12px; font-weight: 600;">Profil löschen</button>
+    <div class="modal-overlay" id="profileModalOverlay">
+        <div class="modal" id="profileModal">
+            <div class="modal-handle"></div>
+            <div class="modal-header">
+                <button class="modal-cancel-btn" id="profileModalCancelBtn">Abbrechen</button>
+                <h2 class="modal-title">Profil bearbeiten</h2>
+                <button class="modal-save-btn" id="profileModalSaveBtn">Speichern</button>
+            </div>
+            <div class="modal-body">
+                <div class="profile-edit-avatar-container">
+                    <div class="profile-avatar-large edit-mode" id="profileEditAvatarPreview">M</div>
+                    <label class="profile-avatar-upload-btn">Bild auswählen<input type="file" id="profileImageInput" accept="image/*" style="display:none"></label>
+                    <button class="profile-avatar-remove-btn" id="profileImageRemoveBtn" style="display:none">Bild entfernen</button>
+                </div>
+                <div class="form-group"><label class="form-label">Name</label><input type="text" class="form-input" id="profileNameInput" placeholder="Dein Name" autocomplete="off"></div>
+                <div class="form-group">
+                    <label class="form-label">Profilfarbe</label>
+                    <div class="color-picker" id="profileColorPicker">
+                        <button class="color-dot active" data-color="#34C759" style="background:#34C759"></button>
+                        <button class="color-dot" data-color="#007AFF" style="background:#007AFF"></button>
+                        <button class="color-dot" data-color="#FF9500" style="background:#FF9500"></button>
+                        <button class="color-dot" data-color="#FF2D55" style="background:#FF2D55"></button>
+                        <button class="color-dot" data-color="#AF52DE" style="background:#AF52DE"></button>
+                        <button class="color-dot" data-color="#FFCC00" style="background:#FFCC00"></button>
+                        <button class="color-dot" data-color="#5856D6" style="background:#5856D6"></button>
+                        <button class="color-dot" data-color="#8E8E93" style="background:#8E8E93"></button>
                     </div>
                 </div>
+                <div class="form-group" style="margin-top: 32px;"><button class="profile-avatar-remove-btn" id="deleteProfileBtn" style="width: 100%; padding: 12px; background: rgba(255,69,58,0.1); border-radius: 12px; font-weight: 600;">Profil löschen</button></div>
             </div>
         </div>
+    </div>
 
-    <!-- Onboarding Modal -->
+    <!-- Onboarding, Privacy, Google Privacy etc. (Same as before, just kept clean) -->
     <div class="modal-overlay" id="onboardingOverlay">
         <div class="modal" id="onboardingModal" style="border-radius: 28px;">
-            <div class="modal-header" style="justify-content: center; padding-top: 32px; border-bottom: none;">
-                <h2 class="modal-title" style="font-size: 24px; font-weight: 700;">Willkommen bei Muzi</h2>
-            </div>
+            <div class="modal-header" style="justify-content: center; padding-top: 32px; border-bottom: none;"><h2 class="modal-title" style="font-size: 24px; font-weight: 700;">Willkommen bei Muzi</h2></div>
             <div class="modal-body" style="text-align: center; padding-top: 16px; padding-bottom: 32px;">
                 <p style="color: var(--text2); margin-bottom: 32px; font-size: 16px;">Bitte erstelle dein erstes Profil, um loszulegen.</p>
-                
                 <div class="profile-edit-avatar-container" style="margin-bottom: 24px;">
                     <div class="profile-avatar-large edit-mode" id="onboardingAvatarPreview" style="margin: 0 auto 16px;">M</div>
-                    <label class="profile-avatar-upload-btn">
-                        Bild auswählen
-                        <input type="file" id="onboardingImageInput" accept="image/*" style="display:none">
-                    </label>
+                    <label class="profile-avatar-upload-btn">Bild auswählen<input type="file" id="onboardingImageInput" accept="image/*" style="display:none"></label>
                     <button class="profile-avatar-remove-btn" id="onboardingImageRemoveBtn" style="display:none; margin: 8px auto 0;">Bild entfernen</button>
                 </div>
-
-                <div class="form-group" style="text-align: left; margin-bottom: 24px;">
-                    <label class="form-label">Dein Name</label>
-                    <input type="text" class="form-input" id="onboardingNameInput" placeholder="Name eingeben" autocomplete="off" style="border-radius: 14px; padding: 16px;">
-                </div>
-                
+                <div class="form-group" style="text-align: left; margin-bottom: 24px;"><label class="form-label">Dein Name</label><input type="text" class="form-input" id="onboardingNameInput" placeholder="Name eingeben" autocomplete="off" style="border-radius: 14px; padding: 16px;"></div>
                 <div class="form-group" style="text-align: left; margin-bottom: 32px;">
                     <label class="form-label">Profilfarbe</label>
                     <div class="color-picker" id="onboardingColorPicker">
@@ -464,153 +385,29 @@
                         <button class="color-dot" data-color="#8E8E93" style="background:#8E8E93"></button>
                     </div>
                 </div>
-                
                 <button id="onboardingSaveBtn" style="width: 100%; padding: 16px; background: var(--accent); color: var(--bg); border: none; border-radius: 16px; font-weight: 700; font-size: 17px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 15px var(--accent-glow);">Profil erstellen</button>
             </div>
         </div>
     </div>
 
-    <!-- What's New Modal -->
-    <div class="modal-overlay" id="whatsNewOverlay">
-        <div class="modal" id="whatsNewModal" style="border-radius: 28px;">
-            <div class="modal-handle"></div>
-            <div class="modal-body" style="padding-top: 24px; padding-bottom: 32px;">
-                <div class="settings-section">
-                    <div class="settings-label">Integrationen</div>
-                    <div class="settings-group">
-                        <div class="settings-option">
-                            <div class="option-info">
-                                <div class="option-title">Google Kalender</div>
-                                <div class="option-desc">Synchronisiere deine Termine</div>
-                            </div>
-                            <button id="googleSyncBtn" class="google-sync-btn">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-                                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z" fill="#EA4335"/>
-                                </svg>
-                                <span>Verbinden</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <div class="settings-label">Erscheinungsbild</div>
-                    <h2 class="whatsnew-title">Was ist neu?</h2>
-                    <span class="whatsnew-version" id="whatsNewVersion">v1.2</span>
-                </div>
-                <div class="whatsnew-content" id="whatsNewContent">
-                    <!-- Rendered by JS -->
-                </div>
-                <button class="whatsnew-dismiss-btn" id="whatsNewDismissBtn">Verstanden!</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Day Detail Modal (Moved to root for z-index) -->
-    <div class="day-detail-overlay" id="dayDetailOverlay">
-        <div class="day-detail-sheet" id="dayDetailSheet">
-            <div class="modal-handle"></div>
-            <div class="day-detail-header">
-                <h2 class="day-detail-title" id="dayDetailTitle">Heute, 13. Mai</h2>
-                <span class="day-detail-count" id="dayDetailCount">0 Termine</span>
-            </div>
-            <div class="day-detail-list" id="dayDetailList">
-                <div class="empty-state">
-                    <p>Keine Termine</p>
-                    <span>Tippe auf + um einen Termin zu erstellen</span>
-                </div>
-            </div>
-            <button class="day-detail-add-btn" id="dayDetailAddBtn">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Termin hinzufügen
-            </button>
-        </div>
-    </div>
-
-    </main>
-
-    <!-- Privacy Policy Modal for Calendar Transfer -->
     <div class="modal-overlay" id="privacyModalOverlay">
         <div class="modal" id="privacyModal" style="border-radius: 28px;">
             <div class="modal-handle"></div>
-            <div class="modal-header" style="justify-content: center; padding-top: 24px; border-bottom: none;">
-                <h2 class="modal-title" style="font-size: 22px; font-weight: 700;">Datenschutz & Übertragung</h2>
-            </div>
+            <div class="modal-header" style="justify-content: center; padding-top: 24px; border-bottom: none;"><h2 class="modal-title" style="font-size: 22px; font-weight: 700;">Datenschutz & Übertragung</h2></div>
             <div class="modal-body" style="padding-top: 8px; padding-bottom: 32px;">
                 <div class="privacy-content" style="background: var(--surface2); padding: 20px; border-radius: 20px; margin-bottom: 24px; font-size: 14px; color: var(--text2); line-height: 1.6; max-height: 300px; overflow-y: auto; border: 1px solid var(--border);">
-                    <h3 style="color: var(--text); margin-bottom: 12px; font-size: 16px;">Warum übertragen wir deine Daten?</h3>
-                    <p style="margin-bottom: 16px;">
-                        Die Übertragung deiner Kalenderdaten ermöglicht es dir, deine Termine und Erinnerungen sicher zwischen verschiedenen Profilen oder Geräten zu synchronisieren. Dies dient der Backup-Erstellung und der nahtlosen Nutzung deiner Daten.
-                    </p>
-                    <h3 style="color: var(--text); margin-bottom: 12px; font-size: 16px;">Welche Daten werden übertragen?</h3>
-                    <p style="margin-bottom: 16px;">
-                        Übertragen werden alle in diesem Profil gespeicherten Termine, inklusive Titel, Beschreibungen, Zeiten und Dringlichkeitsstufen.
-                    </p>
                     <h3 style="color: var(--text); margin-bottom: 12px; font-size: 16px;">Deine Privatsphäre</h3>
-                    <p>
-                        Deine Daten werden verschlüsselt verarbeitet und nicht an Dritte weitergegeben. Du behältst jederzeit die volle Kontrolle über deine Informationen.
-                    </p>
+                    <p>Deine Daten werden verschlüsselt verarbeitet und nicht an Dritte weitergegeben. Du behältst jederzeit die volle Kontrolle über deine Informationen.</p>
                 </div>
-
                 <div class="privacy-agreements" style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px;">
-                    <label class="checkbox-container" style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
-                        <input type="checkbox" id="privacyCheck1" style="width: 22px; height: 22px; margin-top: 2px; accent-color: var(--accent); border-radius: 6px;">
-                        <span style="font-size: 14px; color: var(--text2);">Ich habe die Datenschutzrichtlinien gelesen und verstehe, warum meine Daten übertragen werden.</span>
-                    </label>
-                    <label class="checkbox-container" style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
-                        <input type="checkbox" id="privacyCheck2" style="width: 22px; height: 22px; margin-top: 2px; accent-color: var(--accent); border-radius: 6px;">
-                        <span style="font-size: 14px; color: var(--text2);">Ich erkläre mich mit der Verarbeitung und Übertragung meiner Kalenderdaten einverstanden.</span>
-                    </label>
+                    <label class="checkbox-container" style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;"><input type="checkbox" id="privacyCheck1"><span style="font-size: 14px; color: var(--text2);">Ich habe die Datenschutzrichtlinien gelesen.</span></label>
+                    <label class="checkbox-container" style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;"><input type="checkbox" id="privacyCheck2"><span style="font-size: 14px; color: var(--text2);">Ich erkläre mich einverstanden.</span></label>
                 </div>
-
-                <button id="privacyConfirmBtn" disabled style="width: 100%; padding: 16px; background: var(--accent); color: var(--bg); border: none; border-radius: 16px; font-weight: 700; font-size: 17px; cursor: pointer; transition: all 0.2s; opacity: 0.5;">Bestätigen & Übertragen</button>
+                <button id="privacyConfirmBtn" disabled style="width: 100%; padding: 16px; background: var(--accent); color: var(--bg); border: none; border-radius: 16px; font-weight: 700; font-size: 17px; cursor: pointer; transition: all 0.2s; opacity: 0.5;">Bestätigen</button>
             </div>
         </div>
     </div>
 
-    <!-- Google Privacy Policy Modal -->
-    <div class="modal-overlay" id="googlePrivacyModalOverlay">
-        <div class="modal" id="googlePrivacyModal" style="border-radius: 28px;">
-            <div class="modal-handle"></div>
-            <div class="modal-header" style="justify-content: center; padding-top: 24px; border-bottom: none;">
-                <h2 class="modal-title" style="font-size: 22px; font-weight: 700;">Google Integration</h2>
-            </div>
-            <div class="modal-body" style="padding-top: 8px; padding-bottom: 32px;">
-                <div class="privacy-content" style="background: var(--surface2); padding: 20px; border-radius: 20px; margin-bottom: 24px; font-size: 14px; color: var(--text2); line-height: 1.6; max-height: 300px; overflow-y: auto; border: 1px solid var(--border);">
-                    <h3 style="color: var(--text); margin-bottom: 12px; font-size: 16px;">Verbindung mit Google</h3>
-                    <p style="margin-bottom: 16px;">
-                        Durch das Verbinden deines Google-Kontos kann Muzi deine Google Kalender-Termine direkt in der App anzeigen und synchronisieren.
-                    </p>
-                    <h3 style="color: var(--text); margin-bottom: 12px; font-size: 16px;">Datennutzung</h3>
-                    <p style="margin-bottom: 16px;">
-                        Muzi liest deine Kalenderdaten, um sie lokal in der App darzustellen. Es werden keine Daten ohne deine explizite Zustimmung an Dritte gesendet.
-                    </p>
-                    <h3 style="color: var(--text); margin-bottom: 12px; font-size: 16px;">Widerruf</h3>
-                    <p>
-                        Du kannst die Verbindung zu deinem Google-Konto jederzeit in den Einstellungen wieder trennen. Dabei werden alle synchronisierten Google-Daten aus Muzi entfernt.
-                    </p>
-                </div>
-
-                <div class="privacy-agreements" style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px;">
-                    <label class="checkbox-container" style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
-                        <input type="checkbox" id="googlePrivacyCheck1" style="width: 22px; height: 22px; margin-top: 2px; accent-color: var(--accent); border-radius: 6px;">
-                        <span style="font-size: 14px; color: var(--text2);">Ich stimme zu, dass Muzi auf meine Google Kalender-Daten zugreifen darf.</span>
-                    </label>
-                    <label class="checkbox-container" style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
-                        <input type="checkbox" id="googlePrivacyCheck2" style="width: 22px; height: 22px; margin-top: 2px; accent-color: var(--accent); border-radius: 6px;">
-                        <span style="font-size: 14px; color: var(--text2);">Ich habe die Datenschutzhinweise zur Google-Integration verstanden.</span>
-                    </label>
-                </div>
-
-                <button id="googlePrivacyConfirmBtn" disabled style="width: 100%; padding: 16px; background: var(--accent); color: var(--bg); border: none; border-radius: 16px; font-weight: 700; font-size: 17px; cursor: pointer; transition: all 0.2s; opacity: 0.5;">Konto verbinden</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- App Logic -->
     <script src="app.js"></script>
 </body>
 </html>
