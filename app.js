@@ -1087,7 +1087,7 @@ init();
 
 // ===== GOOGLE CALENDAR SYNC =====
 const GOOGLE_CLIENT_ID = '609973725824-r3laiud55hlke4tr82d6rkg7n2le2893.apps.googleusercontent.com';
-const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/calendar.events.readonly';
+const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
 
 let tokenClient;
 let gapiInited = false;
@@ -1160,7 +1160,14 @@ async function handleGoogleSync(silent = false) {
         
         if (response.status === 401) {
             localStorage.removeItem('muzi_google_token');
-            if (!silent) tokenClient.requestAccessToken();
+            localStorage.removeItem('muzi_google_token_expiry');
+            updateGoogleSyncUI();
+            if (!silent) {
+                showToast('Google-Sitzung abgelaufen. Bitte erneut verbinden.');
+                openGooglePrivacyModal();
+            } else {
+                showToast('Google-Sitzung abgelaufen. Erneute Anmeldung erforderlich.');
+            }
             return;
         }
 
@@ -1225,14 +1232,15 @@ toastStyle.textContent = `
 document.head.appendChild(toastStyle);
 
 function importGoogleEvents(googleEvents) {
-    let newEventsCount = 0;
-    googleEvents.forEach(ge => {
-        // Skip if already exists (simple ID check)
-        if (state.events.some(e => e.googleId === ge.id)) return;
+    let addedCount = 0;
+    let updatedCount = 0;
 
+    // Filter out manual events to prevent overwriting or deleting them
+    const manualEvents = state.events.filter(e => !e.isGoogleEvent && !e.googleId);
+    let googleEventsInState = state.events.filter(e => e.isGoogleEvent || e.googleId);
+
+    googleEvents.forEach(ge => {
         const startStr = ge.start.dateTime || ge.start.date;
-        const endStr = ge.end.dateTime || ge.end.date;
-        
         if (!startStr) return;
 
         let startDate, endDate;
@@ -1248,29 +1256,62 @@ function importGoogleEvents(googleEvents) {
             endDate = new Date(ge.end.dateTime || ge.start.dateTime);
         }
 
-        const newEvent = {
-            id: 'google_' + ge.id,
-            googleId: ge.id,
-            title: ge.summary || 'Google Termin',
-            date: formatDate(startDate),
-            startTime: ge.start.dateTime ? startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '00:00',
-            endTime: ge.end.dateTime ? endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '23:59',
-            color: state.profile.color, 
-            urgency: 100,
-            notes: ge.description || '',
-            profileId: state.activeProfileId,
-            isGoogleEvent: true
-        };
+        const formattedDate = formatDate(startDate);
+        const startTime = ge.start.dateTime ? startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '00:00';
+        const endTime = ge.end.dateTime ? endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '23:59';
+        const title = ge.summary || 'Google Termin';
+        const notes = ge.description || '';
 
-        state.events.push(newEvent);
-        newEventsCount++;
+        // Check if this Google event already exists in our state
+        const existingIdx = googleEventsInState.findIndex(e => e.googleId === ge.id);
+
+        if (existingIdx !== -1) {
+            // Update the Google event if its properties have changed
+            const existing = googleEventsInState[existingIdx];
+            if (existing.title !== title || 
+                existing.date !== formattedDate || 
+                existing.startTime !== startTime || 
+                existing.endTime !== endTime || 
+                existing.notes !== notes) {
+                
+                googleEventsInState[existingIdx] = {
+                    ...existing,
+                    title,
+                    date: formattedDate,
+                    startTime,
+                    endTime,
+                    notes
+                };
+                updatedCount++;
+            }
+        } else {
+            // Add as a new Google event
+            const newEvent = {
+                id: 'google_' + ge.id,
+                googleId: ge.id,
+                title,
+                date: formattedDate,
+                startTime,
+                endTime,
+                color: state.profile.color, 
+                urgency: 100,
+                notes,
+                profileId: state.activeProfileId,
+                isGoogleEvent: true
+            };
+            googleEventsInState.push(newEvent);
+            addedCount++;
+        }
     });
 
-    if (newEventsCount > 0) {
+    // Recombine manual events with the updated Google events
+    state.events = [...manualEvents, ...googleEventsInState];
+
+    if (addedCount > 0 || updatedCount > 0) {
         saveEvents();
         renderCalendar();
     }
-    return newEventsCount;
+    return addedCount + updatedCount;
 }
 
 // Removed duplicate listener
@@ -1620,7 +1661,7 @@ function updateGoogleSyncUI() {
         </svg>`;
         
         if (state.googleConnected) {
-            btn.innerHTML = iconHtml + '<span>Synchronisieren</span>';
+            btn.innerHTML = iconHtml + '<span>Mit Google synchronisieren</span>';
             btn.style.background = 'rgba(255,255,255,0.05)';
             btn.style.color = 'var(--text)';
             
@@ -1639,7 +1680,7 @@ function updateGoogleSyncUI() {
                 btn.parentNode.appendChild(link);
             }
         } else {
-            btn.innerHTML = iconHtml + '<span>Verbinden</span>';
+            btn.innerHTML = iconHtml + '<span>Mit Google synchronisieren</span>';
             btn.style.background = '';
             btn.style.color = '';
             $('googleDisconnectLink')?.remove();
@@ -1668,4 +1709,13 @@ $('googlePrivacyModalOverlay')?.addEventListener('click', e => {
         $('googlePrivacyModalOverlay').classList.remove('open');
     }
 });
+
+// Register Service Worker for offline PWA capabilities
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+            .then(reg => console.log('Service Worker registered', reg))
+            .catch(err => console.error('Service Worker registration failed', err));
+    });
+}
 

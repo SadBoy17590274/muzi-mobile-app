@@ -160,7 +160,7 @@
                             </svg>
                             <span>Google Kalender</span>
                         </div>
-                        <button id="googleSyncBtn" class="google-sync-btn">Verbinden</button>
+                        <button id="googleSyncBtn" class="google-sync-btn">Mit Google synchronisieren</button>
                     </div>
                 </div>
 
@@ -411,6 +411,30 @@
                     <label class="checkbox-container" style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;"><input type="checkbox" id="privacyCheck2"><span style="font-size: 14px; color: var(--text2);">Ich erkläre mich einverstanden.</span></label>
                 </div>
                 <button id="privacyConfirmBtn" disabled style="width: 100%; padding: 16px; background: var(--accent); color: var(--bg); border: none; border-radius: 16px; font-weight: 700; font-size: 17px; cursor: pointer; transition: all 0.2s; opacity: 0.5;">Bestätigen</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="googlePrivacyModalOverlay">
+        <div class="modal" id="googlePrivacyModal" style="border-radius: 28px;">
+            <div class="modal-handle"></div>
+            <div class="modal-header" style="justify-content: center; padding-top: 24px; border-bottom: none;"><h2 class="modal-title" style="font-size: 22px; font-weight: 700;">Google Kalender Verbindung</h2></div>
+            <div class="modal-body" style="padding-top: 8px; padding-bottom: 32px;">
+                <div class="privacy-content" style="background: var(--surface2); padding: 20px; border-radius: 20px; margin-bottom: 24px; font-size: 14px; color: var(--text2); line-height: 1.6; max-height: 300px; overflow-y: auto; border: 1px solid var(--border);">
+                    <h3 style="color: var(--text); margin-bottom: 12px; font-size: 16px;">Datenzugriff & Sicherheit</h3>
+                    <p>Um deine Termine anzuzeigen, benötigt Muzi Lesezugriff auf deinen Google Kalender. Deine Google-Zugangsdaten werden lokal in deinem Browser verschlüsselt gespeichert und niemals an andere Server übertragen.</p>
+                </div>
+                <div class="privacy-agreements" style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px;">
+                    <label class="checkbox-container" style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
+                        <input type="checkbox" id="googlePrivacyCheck1">
+                        <span style="font-size: 14px; color: var(--text2);">Ich stimme der Synchronisierung meiner Google Kalender-Daten zu.</span>
+                    </label>
+                    <label class="checkbox-container" style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
+                        <input type="checkbox" id="googlePrivacyCheck2">
+                        <span style="font-size: 14px; color: var(--text2);">Ich habe verstanden, dass die Daten lokal auf meinem Gerät verarbeitet werden.</span>
+                    </label>
+                </div>
+                <button id="googlePrivacyConfirmBtn" disabled style="width: 100%; padding: 16px; background: var(--accent); color: var(--bg); border: none; border-radius: 16px; font-weight: 700; font-size: 17px; cursor: pointer; transition: all 0.2s; opacity: 0.5;">Verbinden</button>
             </div>
         </div>
     </div>
