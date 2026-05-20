@@ -1722,6 +1722,11 @@ select.form-input {
 /* Interactive Recurrence Highlighting */
 .event-card, .week-event-card {
     transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s, border-color 0.2s, background 0.2s;
+    cursor: pointer;
+}
+.event-card:active, .week-event-card:active {
+    transform: scale(0.97);
+    background: var(--surface2) !important;
 }
 .event-card.highlight-recurring, .week-event-card.highlight-recurring {
     border-color: var(--accent) !important;

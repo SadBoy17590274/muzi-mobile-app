@@ -22,6 +22,7 @@ const state = {
     // Event modal state
     eventProfileId: null,  // which profile to assign a new event to
     eventUrgency: 100,
+    editingEventId: null,
     get googleConnected() { 
         const token = localStorage.getItem('muzi_google_token');
         const expiry = localStorage.getItem('muzi_google_token_expiry');
@@ -764,6 +765,10 @@ function renderEventProfileSelector() {
 }
 
 function openModal() {
+    state.editingEventId = null;
+    const modalTitleEl = els.modalOverlay.querySelector('.modal-title');
+    if (modalTitleEl) modalTitleEl.textContent = 'Neuer Termin';
+
     els.modalOverlay.classList.add('open');
     els.eventTitle.value = '';
     els.eventDate.value = formatDate(state.selectedDate);
@@ -802,6 +807,47 @@ function openModal() {
 
 function closeModal() {
     els.modalOverlay.classList.remove('open');
+}
+
+function openEditModal(ev) {
+    state.editingEventId = ev.id;
+    const modalTitleEl = els.modalOverlay.querySelector('.modal-title');
+    if (modalTitleEl) modalTitleEl.textContent = 'Termin bearbeiten';
+
+    els.modalOverlay.classList.add('open');
+    els.eventTitle.value = ev.title || '';
+    els.eventDate.value = ev.date || formatDate(new Date());
+    els.eventStart.value = ev.startTime || '09:00';
+    els.eventEnd.value = ev.endTime || '10:00';
+    els.eventNotes.value = ev.notes || '';
+    state.eventProfileId = ev.profileId || state.activeProfileId;
+    state.eventUrgency = ev.urgency ?? 100;
+    state.selectedColor = ev.color || '#FFFFFF';
+
+    if (els.eventRepeat) {
+        els.eventRepeat.value = ev.repeat || 'none';
+    }
+    updateCustomRepeatOptionText(els.eventDate.value);
+
+    // Render profile selector
+    renderEventProfileSelector();
+
+    // Setup urgency slider
+    const urgSlider = $('eventUrgency');
+    const urgValue = $('urgencyValue');
+    if (urgSlider) {
+        urgSlider.value = state.eventUrgency;
+        urgValue.textContent = state.eventUrgency + '%';
+    }
+
+    // Show/hide free color picker based on color binding setting
+    const freeColorGroup = $('freeColorGroup');
+    if (freeColorGroup) {
+        freeColorGroup.style.display = state.colorBinding ? 'none' : 'block';
+    }
+
+    $$('#colorPicker .color-dot').forEach(d => d.classList.toggle('active', d.dataset.color === state.selectedColor));
+    setTimeout(() => els.eventTitle.focus(), 400);
 }
 
 $('modalCancelBtn')?.addEventListener('click', closeModal);
@@ -854,26 +900,53 @@ $('modalSaveBtn').addEventListener('click', () => {
         }
     }
 
-    const event = {
-        id: Date.now().toString(36) + Math.random().toString(36).slice(2),
-        title,
-        date: els.eventDate.value,
-        startTime: els.eventStart.value,
-        endTime: els.eventEnd.value,
-        color: finalColor,
-        urgency: state.eventUrgency,
-        notes: els.eventNotes.value.trim(),
-        profileId: state.eventProfileId,
-        repeat: repeatVal,
-        ...(recurrence ? { recurrence } : {})
-    };
+    let targetDate = els.eventDate.value;
 
-    state.events.push(event);
+    if (state.editingEventId) {
+        const index = state.events.findIndex(e => e.id === state.editingEventId);
+        if (index !== -1) {
+            const originalEvent = state.events[index];
+            state.events[index] = {
+                ...originalEvent,
+                title,
+                date: els.eventDate.value,
+                startTime: els.eventStart.value,
+                endTime: els.eventEnd.value,
+                color: finalColor,
+                urgency: state.eventUrgency,
+                notes: els.eventNotes.value.trim(),
+                profileId: state.eventProfileId,
+                repeat: repeatVal,
+                ...(recurrence ? { recurrence } : { recurrence: undefined })
+            };
+            if (repeatVal === 'none') {
+                delete state.events[index].recurrence;
+            }
+            targetDate = state.events[index].date;
+        }
+    } else {
+        const event = {
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+            title,
+            date: els.eventDate.value,
+            startTime: els.eventStart.value,
+            endTime: els.eventEnd.value,
+            color: finalColor,
+            urgency: state.eventUrgency,
+            notes: els.eventNotes.value.trim(),
+            profileId: state.eventProfileId,
+            repeat: repeatVal,
+            ...(recurrence ? { recurrence } : {})
+        };
+        state.events.push(event);
+        targetDate = event.date;
+    }
+
     saveEvents();
     closeModal();
 
     // Navigate to that date
-    const parts = event.date.split('-');
+    const parts = targetDate.split('-');
     state.selectedDate = new Date(parts[0], parts[1] - 1, parts[2]);
     state.currentDate = new Date(state.selectedDate);
     renderCalendar();
@@ -1874,6 +1947,27 @@ document.addEventListener('mouseout', e => {
         el.classList.remove('highlight-recurring');
     });
 });
+
+// Click handler for editing events
+document.addEventListener('click', e => {
+    const card = e.target.closest('.event-card, .week-event-card');
+    if (!card) return;
+
+    // Ignore if clicked on the delete button
+    if (e.target.closest('.event-card-delete')) return;
+
+    e.stopPropagation();
+    e.preventDefault();
+
+    const eventId = card.dataset.eventId;
+    if (eventId) {
+        const ev = state.events.find(evt => evt.id === eventId);
+        if (ev) {
+            closeDayDetail();
+            openEditModal(ev);
+        }
+    }
+}, true);
 
 // Register Service Worker for offline PWA capabilities
 if ('serviceWorker' in navigator) {
