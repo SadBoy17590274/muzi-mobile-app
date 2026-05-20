@@ -360,6 +360,30 @@
         </div>
     </div>
 
+    <!-- Recurrence Edit Choice Modal -->
+    <div class="modal-overlay" id="recurrenceChoiceModalOverlay" style="z-index: 150;">
+        <div class="modal" id="recurrenceChoiceModal" style="max-width: 380px;">
+            <div class="modal-handle"></div>
+            <div class="modal-header" style="justify-content: center; padding-bottom: 8px;">
+                <h3 class="modal-title" style="text-align: center;">Serientermin bearbeiten</h3>
+            </div>
+            <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 12px; text-align: center;">
+                <p style="font-size: 14px; color: var(--text2); margin-bottom: 12px; font-family: 'Inter', sans-serif;">
+                    Möchtest du nur diesen einzelnen Termin oder alle zukünftigen Termine dieser Serie ändern?
+                </p>
+                <button class="form-btn" id="btnEditThisOnly" style="background: var(--surface2); color: var(--text); border: 1px solid var(--border); padding: 14px; border-radius: var(--radius); font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                    Nur diesen Termin ändern
+                </button>
+                <button class="form-btn" id="btnEditAllFuture" style="background: var(--text); color: var(--bg); border: none; padding: 14px; border-radius: var(--radius); font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                    Alle zukünftigen Termine ändern
+                </button>
+                <button class="form-btn" id="btnEditCancel" style="background: transparent; color: var(--text3); border: none; padding: 10px; border-radius: var(--radius); font-size: 13px; cursor: pointer; transition: all 0.2s; margin-top: 4px;">
+                    Abbrechen
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="day-detail-overlay" id="dayDetailOverlay">
         <div class="day-detail-sheet" id="dayDetailSheet">
             <div class="modal-handle"></div>

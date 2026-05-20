@@ -23,6 +23,7 @@ const state = {
     eventProfileId: null,  // which profile to assign a new event to
     eventUrgency: 100,
     editingEventId: null,
+    editingOccurrenceDate: null,
     get googleConnected() { 
         const token = localStorage.getItem('muzi_google_token');
         const expiry = localStorage.getItem('muzi_google_token_expiry');
@@ -87,6 +88,18 @@ function updateCustomRepeatOptionText(dateStr) {
 }
 
 function matchesRecurrence(event, targetDate) {
+    const ds = formatDate(targetDate);
+    if (event.exdates && event.exdates.includes(ds)) {
+        return false;
+    }
+    if (event.untilDate) {
+        const untilD = new Date(event.untilDate + 'T23:59:59');
+        const targetD = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+        if (targetD > untilD) {
+            return false;
+        }
+    }
+
     let recurrence = event.recurrence;
     if (!recurrence || recurrence.length === 0) {
         if (!event.repeat || event.repeat === 'none') {
@@ -500,7 +513,7 @@ function renderWeekView() {
                         const d = getEventDisplayColor(ev);
                         const barColor = hexToRgba(d.color, d.opacity);
                         return `
-                        <div class="week-event-card" data-event-id="${ev.id}" data-recurring-id="${ev.recurringEventId || ''}" data-has-recurrence="${(ev.recurrence && ev.recurrence.length > 0) || (ev.repeat && ev.repeat !== 'none') ? 'true' : 'false'}">
+                        <div class="week-event-card" data-event-id="${ev.id}" data-occurrence-date="${formatDate(date)}" data-recurring-id="${ev.recurringEventId || ''}" data-has-recurrence="${(ev.recurrence && ev.recurrence.length > 0) || (ev.repeat && ev.repeat !== 'none') ? 'true' : 'false'}">
                             <span class="event-initial-badge" style="background:${d.profileColor}">${d.initial}</span>
                             <div class="week-event-color" style="background:${barColor}; ${d.glow}"></div>
                             <div class="week-event-info" style="opacity:${Math.max(0.4, (ev.urgency ?? 100) / 100)}">
@@ -554,7 +567,7 @@ function renderDayView() {
                     const dc = getEventDisplayColor(ev);
                     const barColor = hexToRgba(dc.color, dc.opacity);
                     return `
-                    <div class="event-card" data-event-id="${ev.id}" data-recurring-id="${ev.recurringEventId || ''}" data-has-recurrence="${(ev.recurrence && ev.recurrence.length > 0) || (ev.repeat && ev.repeat !== 'none') ? 'true' : 'false'}">
+                    <div class="event-card" data-event-id="${ev.id}" data-occurrence-date="${formatDate(d)}" data-recurring-id="${ev.recurringEventId || ''}" data-has-recurrence="${(ev.recurrence && ev.recurrence.length > 0) || (ev.repeat && ev.repeat !== 'none') ? 'true' : 'false'}">
                         <span class="event-initial-badge" style="background:${dc.profileColor}">${dc.initial}</span>
                         <div class="event-color-bar" style="background:${barColor}; ${dc.glow}"></div>
                         <div class="event-card-content" style="opacity:${Math.max(0.4, (ev.urgency ?? 100) / 100)}">
@@ -667,7 +680,7 @@ function openDayDetail() {
             const isOwn = isEventForActiveProfile(ev);
             
             return `
-            <div class="event-card" style="${!isOwn ? 'opacity: 0.8;' : ''}" data-event-id="${ev.id}" data-recurring-id="${ev.recurringEventId || ''}" data-has-recurrence="${(ev.recurrence && ev.recurrence.length > 0) || (ev.repeat && ev.repeat !== 'none') ? 'true' : 'false'}">
+            <div class="event-card" style="${!isOwn ? 'opacity: 0.8;' : ''}" data-event-id="${ev.id}" data-occurrence-date="${formatDate(d)}" data-recurring-id="${ev.recurringEventId || ''}" data-has-recurrence="${(ev.recurrence && ev.recurrence.length > 0) || (ev.repeat && ev.repeat !== 'none') ? 'true' : 'false'}">
                 <span class="event-initial-badge" style="background:${display.profileColor}">${display.initial}</span>
                 <div class="event-color-bar" style="background:${barColor}; ${display.glow}"></div>
                 <div class="event-card-content">
@@ -809,14 +822,15 @@ function closeModal() {
     els.modalOverlay.classList.remove('open');
 }
 
-function openEditModal(ev) {
+function openEditModal(ev, occurrenceDate) {
     state.editingEventId = ev.id;
+    state.editingOccurrenceDate = occurrenceDate || ev.date;
     const modalTitleEl = els.modalOverlay.querySelector('.modal-title');
     if (modalTitleEl) modalTitleEl.textContent = 'Termin bearbeiten';
 
     els.modalOverlay.classList.add('open');
     els.eventTitle.value = ev.title || '';
-    els.eventDate.value = ev.date || formatDate(new Date());
+    els.eventDate.value = occurrenceDate || ev.date || formatDate(new Date());
     els.eventStart.value = ev.startTime || '09:00';
     els.eventEnd.value = ev.endTime || '10:00';
     els.eventNotes.value = ev.notes || '';
@@ -906,23 +920,42 @@ $('modalSaveBtn').addEventListener('click', () => {
         const index = state.events.findIndex(e => e.id === state.editingEventId);
         if (index !== -1) {
             const originalEvent = state.events[index];
-            state.events[index] = {
-                ...originalEvent,
-                title,
-                date: els.eventDate.value,
-                startTime: els.eventStart.value,
-                endTime: els.eventEnd.value,
-                color: finalColor,
-                urgency: state.eventUrgency,
-                notes: els.eventNotes.value.trim(),
-                profileId: state.eventProfileId,
-                repeat: repeatVal,
-                ...(recurrence ? { recurrence } : { recurrence: undefined })
-            };
-            if (repeatVal === 'none') {
-                delete state.events[index].recurrence;
+            const isRecurring = originalEvent && ((originalEvent.recurrence && originalEvent.recurrence.length > 0) || (originalEvent.repeat && originalEvent.repeat !== 'none'));
+            
+            if (isRecurring) {
+                state.tempEditValues = {
+                    title,
+                    date: els.eventDate.value,
+                    startTime: els.eventStart.value,
+                    endTime: els.eventEnd.value,
+                    color: finalColor,
+                    urgency: state.eventUrgency,
+                    notes: els.eventNotes.value.trim(),
+                    profileId: state.eventProfileId,
+                    repeat: repeatVal,
+                    recurrence: recurrence
+                };
+                $('recurrenceChoiceModalOverlay').classList.add('open');
+                return;
+            } else {
+                state.events[index] = {
+                    ...originalEvent,
+                    title,
+                    date: els.eventDate.value,
+                    startTime: els.eventStart.value,
+                    endTime: els.eventEnd.value,
+                    color: finalColor,
+                    urgency: state.eventUrgency,
+                    notes: els.eventNotes.value.trim(),
+                    profileId: state.eventProfileId,
+                    repeat: repeatVal,
+                    ...(recurrence ? { recurrence } : { recurrence: undefined })
+                };
+                if (repeatVal === 'none') {
+                    delete state.events[index].recurrence;
+                }
+                targetDate = state.events[index].date;
             }
-            targetDate = state.events[index].date;
         }
     } else {
         const event = {
@@ -938,6 +971,9 @@ $('modalSaveBtn').addEventListener('click', () => {
             repeat: repeatVal,
             ...(recurrence ? { recurrence } : {})
         };
+        if (repeatVal !== 'none') {
+            event.seriesId = event.id;
+        }
         state.events.push(event);
         targetDate = event.date;
     }
@@ -950,6 +986,114 @@ $('modalSaveBtn').addEventListener('click', () => {
     state.selectedDate = new Date(parts[0], parts[1] - 1, parts[2]);
     state.currentDate = new Date(state.selectedDate);
     renderCalendar();
+});
+
+// Recurrence Choice Modal handlers
+$('btnEditThisOnly').addEventListener('click', () => {
+    $('recurrenceChoiceModalOverlay').classList.remove('open');
+    if (!state.editingEventId || !state.tempEditValues) return;
+
+    const index = state.events.findIndex(e => e.id === state.editingEventId);
+    if (index !== -1) {
+        const originalEvent = state.events[index];
+        originalEvent.exdates = originalEvent.exdates || [];
+        if (!originalEvent.exdates.includes(state.editingOccurrenceDate)) {
+            originalEvent.exdates.push(state.editingOccurrenceDate);
+        }
+        originalEvent.seriesId = originalEvent.seriesId || originalEvent.id;
+
+        const newEvent = {
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+            title: state.tempEditValues.title,
+            date: state.editingOccurrenceDate,
+            startTime: state.tempEditValues.startTime,
+            endTime: state.tempEditValues.endTime,
+            color: state.tempEditValues.color,
+            urgency: state.tempEditValues.urgency,
+            notes: state.tempEditValues.notes,
+            profileId: state.tempEditValues.profileId,
+            repeat: 'none',
+            seriesId: originalEvent.seriesId
+        };
+        state.events.push(newEvent);
+        
+        saveEvents();
+        closeModal();
+        
+        const parts = state.editingOccurrenceDate.split('-');
+        state.selectedDate = new Date(parts[0], parts[1] - 1, parts[2]);
+        state.currentDate = new Date(state.selectedDate);
+        renderCalendar();
+    }
+});
+
+$('btnEditAllFuture').addEventListener('click', () => {
+    $('recurrenceChoiceModalOverlay').classList.remove('open');
+    if (!state.editingEventId || !state.tempEditValues) return;
+
+    const index = state.events.findIndex(e => e.id === state.editingEventId);
+    if (index !== -1) {
+        const originalEvent = state.events[index];
+        originalEvent.seriesId = originalEvent.seriesId || originalEvent.id;
+        
+        if (state.editingOccurrenceDate === originalEvent.date) {
+            state.events[index] = {
+                ...originalEvent,
+                title: state.tempEditValues.title,
+                date: state.tempEditValues.date,
+                startTime: state.tempEditValues.startTime,
+                endTime: state.tempEditValues.endTime,
+                color: state.tempEditValues.color,
+                urgency: state.tempEditValues.urgency,
+                notes: state.tempEditValues.notes,
+                profileId: state.tempEditValues.profileId,
+                repeat: state.tempEditValues.repeat,
+                ...(state.tempEditValues.recurrence ? { recurrence: state.tempEditValues.recurrence } : { recurrence: undefined })
+            };
+            if (state.tempEditValues.repeat === 'none') {
+                delete state.events[index].recurrence;
+            }
+        } else {
+            const currentD = new Date(state.editingOccurrenceDate + 'T00:00:00');
+            currentD.setDate(currentD.getDate() - 1);
+            const yesterdayStr = formatDate(currentD);
+            originalEvent.untilDate = yesterdayStr;
+
+            const newSeriesEvent = {
+                id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+                title: state.tempEditValues.title,
+                date: state.editingOccurrenceDate,
+                startTime: state.tempEditValues.startTime,
+                endTime: state.tempEditValues.endTime,
+                color: state.tempEditValues.color,
+                urgency: state.tempEditValues.urgency,
+                notes: state.tempEditValues.notes,
+                profileId: state.tempEditValues.profileId,
+                repeat: state.tempEditValues.repeat,
+                ...(state.tempEditValues.recurrence ? { recurrence: state.tempEditValues.recurrence } : {}),
+                seriesId: originalEvent.seriesId
+            };
+            state.events.push(newSeriesEvent);
+        }
+
+        saveEvents();
+        closeModal();
+
+        const parts = state.editingOccurrenceDate.split('-');
+        state.selectedDate = new Date(parts[0], parts[1] - 1, parts[2]);
+        state.currentDate = new Date(state.selectedDate);
+        renderCalendar();
+    }
+});
+
+$('btnEditCancel').addEventListener('click', () => {
+    $('recurrenceChoiceModalOverlay').classList.remove('open');
+});
+
+$('recurrenceChoiceModalOverlay').addEventListener('click', e => {
+    if (e.target === $('recurrenceChoiceModalOverlay')) {
+        $('recurrenceChoiceModalOverlay').classList.remove('open');
+    }
 });
 
 // ===== SEARCH =====
@@ -1964,7 +2108,7 @@ document.addEventListener('click', e => {
         const ev = state.events.find(evt => evt.id === eventId);
         if (ev) {
             closeDayDetail();
-            openEditModal(ev);
+            openEditModal(ev, card.dataset.occurrenceDate);
         }
     }
 }, true);
