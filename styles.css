@@ -726,23 +726,21 @@ body {
 /* ========== FLOATING BOTTOM NAV (Clean Tech Glassmorphism) ========== */
 .bottom-nav {
     position: fixed;
-    bottom: 0;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     left: 50%;
     transform: translateX(-50%);
-    width: 100%;
-    max-width: 430px;
-    height: 80px;
+    width: calc(100% - 32px);
+    max-width: 398px;
+    height: 76px;
     background: var(--nav-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-radius: 28px 28px 0 0;
+    border-radius: 24px;
     display: flex;
     align-items: center;
     justify-content: space-evenly;
-    padding: 8px 16px;
-    padding-bottom: calc(4px + env(safe-area-inset-bottom, 12px));
+    padding: 0 16px;
     border: 1px solid var(--border);
-    border-bottom: none;
     z-index: 50;
     box-shadow: var(--nav-shadow);
 }
@@ -757,7 +755,7 @@ body {
     color: var(--text2);
     cursor: pointer;
     width: 64px;
-    height: 64px;
+    height: 100%;
     position: relative;
     transition: color 0.2s ease;
 }
@@ -1526,9 +1524,11 @@ select.form-input {
         max-width: 100%;
     }
     .bottom-nav {
-        max-width: 100%;
-        left: 0; right: 0;
-        transform: none;
+        left: 50%;
+        transform: translateX(-50%);
+        width: calc(100% - 32px);
+        max-width: 398px;
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     }
 }
 
@@ -1540,7 +1540,7 @@ select.form-input {
         border-right: 1px solid var(--border);
     }
     .bottom-nav {
-        max-width: 428px;
+        max-width: 398px;
     }
 }
 

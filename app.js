@@ -804,7 +804,6 @@ function closeModal() {
     els.modalOverlay.classList.remove('open');
 }
 
-$('addEventBtn')?.addEventListener('click', openModal);
 $('modalCancelBtn')?.addEventListener('click', closeModal);
 els.modalOverlay.addEventListener('click', e => {
     if (e.target === els.modalOverlay) closeModal();
