@@ -45,6 +45,7 @@ const els = {
     eventStart: $('eventStartTime'),
     eventEnd: $('eventEndTime'),
     eventNotes: $('eventNotes'),
+    eventRepeat: $('eventRepeat'),
     searchInput: $('searchInput'),
     searchResults: $('searchResults'),
     statEvents: $('statEvents'),
@@ -66,6 +67,86 @@ function formatDate(d) {
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+function updateCustomRepeatOptionText(dateStr) {
+    const customOpt = $('eventRepeatCustomOption');
+    if (!customOpt) return;
+    if (!dateStr) {
+        customOpt.textContent = 'Eigene Auswahl';
+        return;
+    }
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+        const d = new Date(parts[0], parts[1] - 1, parts[2]);
+        if (!isNaN(d.getTime())) {
+            customOpt.textContent = `Eigene Auswahl (Jeden ${DAYS[d.getDay()]})`;
+        } else {
+            customOpt.textContent = 'Eigene Auswahl';
+        }
+    }
+}
+
+function matchesRecurrence(event, targetDate) {
+    let recurrence = event.recurrence;
+    if (!recurrence || recurrence.length === 0) {
+        if (!event.repeat || event.repeat === 'none') {
+            return false;
+        }
+        const startD = new Date(event.date + 'T00:00:00');
+        const WEEKDAY_CODES = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+        const code = WEEKDAY_CODES[startD.getDay()];
+        
+        if (event.repeat === 'daily') recurrence = ["RRULE:FREQ=DAILY"];
+        else if (event.repeat === 'weekly') recurrence = ["RRULE:FREQ=WEEKLY"];
+        else if (event.repeat === 'monthly') recurrence = ["RRULE:FREQ=MONTHLY"];
+        else if (event.repeat === 'custom') recurrence = [`RRULE:FREQ=WEEKLY;BYDAY=${code}`];
+        else return false;
+    }
+
+    const rruleStr = recurrence[0];
+    if (!rruleStr) return false;
+
+    const cleanRule = rruleStr.replace(/^RRULE:/i, '');
+    const parts = {};
+    cleanRule.split(';').forEach(part => {
+        const [key, val] = part.split('=');
+        if (key && val) {
+            parts[key.toUpperCase()] = val.toUpperCase();
+        }
+    });
+
+    const freq = parts['FREQ'];
+    if (!freq) return false;
+
+    const startD = new Date(event.date + 'T00:00:00');
+    const targetD = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+    const startMidnight = new Date(startD.getFullYear(), startD.getMonth(), startD.getDate());
+
+    if (targetD < startMidnight) return false;
+    if (targetD.getTime() === startMidnight.getTime()) return true;
+
+    if (freq === 'DAILY') {
+        return true;
+    }
+
+    if (freq === 'WEEKLY') {
+        const byDay = parts['BYDAY'];
+        if (byDay) {
+            const WEEKDAY_CODES = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+            const targetCode = WEEKDAY_CODES[targetD.getDay()];
+            const allowedDays = byDay.split(',');
+            return allowedDays.includes(targetCode);
+        } else {
+            return targetD.getDay() === startMidnight.getDay();
+        }
+    }
+
+    if (freq === 'MONTHLY') {
+        return targetD.getDate() === startMidnight.getDate();
+    }
+
+    return false;
+}
+
 function isEventForActiveProfile(e) {
     const activeStrId = String(state.activeProfileId);
     const mainProfileId = String(state.profiles[0] ? state.profiles[0].id : '1');
@@ -75,13 +156,17 @@ function isEventForActiveProfile(e) {
 function getEventsForDate(date) {
     const ds = formatDate(date);
     return state.events.filter(e => {
-        if (e.date !== ds) return false;
+        let isVisible = false;
         if (state.sharedView) {
             // In shared view, show if it belongs to active profile OR a visible profile
-            return isEventForActiveProfile(e) || state.visibleProfileIds.includes(String(e.profileId));
+            isVisible = isEventForActiveProfile(e) || state.visibleProfileIds.includes(String(e.profileId));
+        } else {
+            // In private view, only show if it belongs to active profile
+            isVisible = isEventForActiveProfile(e);
         }
-        // In private view, only show if it belongs to active profile
-        return isEventForActiveProfile(e);
+        if (!isVisible) return false;
+
+        return e.date === ds || matchesRecurrence(e, date);
     });
 }
 
@@ -262,7 +347,7 @@ function closeSidebar() {
 }
 
 // All menu buttons
-['menuBtn','menuBtnProfile','menuBtnSearch','menuBtnSettings'].forEach(id => {
+['menuBtn','menuBtnProfile','menuBtnSearch','menuBtnSettings','menuBtnNotes'].forEach(id => {
     const el = $(id);
     if (el) el.addEventListener('click', openSidebar);
 });
@@ -414,11 +499,16 @@ function renderWeekView() {
                         const d = getEventDisplayColor(ev);
                         const barColor = hexToRgba(d.color, d.opacity);
                         return `
-                        <div class="week-event-card">
+                        <div class="week-event-card" data-event-id="${ev.id}" data-recurring-id="${ev.recurringEventId || ''}" data-has-recurrence="${(ev.recurrence && ev.recurrence.length > 0) || (ev.repeat && ev.repeat !== 'none') ? 'true' : 'false'}">
                             <span class="event-initial-badge" style="background:${d.profileColor}">${d.initial}</span>
                             <div class="week-event-color" style="background:${barColor}; ${d.glow}"></div>
                             <div class="week-event-info" style="opacity:${Math.max(0.4, (ev.urgency ?? 100) / 100)}">
-                                <div class="week-event-title">${ev.title}</div>
+                                <div class="week-event-title" style="display:flex; align-items:center; gap:4px;">
+                                    ${ev.title}
+                                    ${(ev.recurrence && ev.recurrence.length > 0) || (ev.repeat && ev.repeat !== 'none') ? `
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.6; flex-shrink: 0;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                                    ` : ''}
+                                </div>
                                 <div class="week-event-time">${ev.startTime} – ${ev.endTime} ${state.sharedView ? `· ${d.profileName}` : ''}</div>
                             </div>
                         </div>`;
@@ -463,11 +553,16 @@ function renderDayView() {
                     const dc = getEventDisplayColor(ev);
                     const barColor = hexToRgba(dc.color, dc.opacity);
                     return `
-                    <div class="event-card">
+                    <div class="event-card" data-event-id="${ev.id}" data-recurring-id="${ev.recurringEventId || ''}" data-has-recurrence="${(ev.recurrence && ev.recurrence.length > 0) || (ev.repeat && ev.repeat !== 'none') ? 'true' : 'false'}">
                         <span class="event-initial-badge" style="background:${dc.profileColor}">${dc.initial}</span>
                         <div class="event-color-bar" style="background:${barColor}; ${dc.glow}"></div>
                         <div class="event-card-content" style="opacity:${Math.max(0.4, (ev.urgency ?? 100) / 100)}">
-                            <div class="event-card-title">${ev.title}</div>
+                            <div class="event-card-title" style="display:flex; align-items:center; gap:4px;">
+                                ${ev.title}
+                                ${(ev.recurrence && ev.recurrence.length > 0) || (ev.repeat && ev.repeat !== 'none') ? `
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.6; flex-shrink: 0;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                                ` : ''}
+                            </div>
                             <div class="event-card-time">${ev.startTime} – ${ev.endTime} · ${dc.profileName}</div>
                         </div>
                     </div>`;
@@ -517,8 +612,8 @@ els.calGrid.addEventListener('touchend', e => {
 }, { passive: true });
 
 function changeMonth(direction) {
-    els.calGrid.style.transition = 'transform 0.15s linear, opacity 0.15s linear';
-    els.calGrid.style.transform = `translateX(${direction > 0 ? '-20px' : '20px'})`;
+    els.calGrid.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.22s ease-in';
+    els.calGrid.style.transform = `translateX(${direction > 0 ? '-30px' : '30px'})`;
     els.calGrid.style.opacity = '0';
     
     setTimeout(() => {
@@ -526,13 +621,13 @@ function changeMonth(direction) {
         renderCalendar();
         
         els.calGrid.style.transition = 'none';
-        els.calGrid.style.transform = `translateX(${direction > 0 ? '20px' : '-20px'})`;
+        els.calGrid.style.transform = `translateX(${direction > 0 ? '30px' : '-30px'})`;
         els.calGrid.offsetHeight; // force reflow
         
-        els.calGrid.style.transition = 'transform 0.15s linear, opacity 0.15s linear';
+        els.calGrid.style.transition = 'transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.15), opacity 0.3s ease-out';
         els.calGrid.style.transform = 'translateX(0)';
         els.calGrid.style.opacity = '1';
-    }, 150);
+    }, 200);
 }
 
 // ===== DAY DETAIL SHEET =====
@@ -548,10 +643,8 @@ function openDayDetail() {
     
     if (titleEl) titleEl.textContent = `${dayName}, ${d.getDate()}. ${MONTHS_SHORT[d.getMonth()]}`;
 
-    // DEBUG: Fetch ALL events for this day to see if any exist at all
-    const ds = formatDate(d);
-    const allEventsForDay = state.events.filter(e => e.date === ds);
-    const events = allEventsForDay; // For now, show everything to see if they appear
+    // Fetch events for this day including recurring events
+    const events = getEventsForDate(d);
     
     if (countEl) countEl.textContent = `${events.length} Termin${events.length !== 1 ? 'e' : ''}`;
 
@@ -560,7 +653,7 @@ function openDayDetail() {
     if (events.length === 0) {
         listEl.innerHTML = `
             <div class="empty-state">
-                <p>Keine Termine (${ds})</p>
+                <p>Keine Termine (${formatDate(d)})</p>
                 <span>Tippe unten um einen Termin zu erstellen</span>
             </div>`;
     } else {
@@ -573,11 +666,16 @@ function openDayDetail() {
             const isOwn = isEventForActiveProfile(ev);
             
             return `
-            <div class="event-card" style="${!isOwn ? 'opacity: 0.8;' : ''}">
+            <div class="event-card" style="${!isOwn ? 'opacity: 0.8;' : ''}" data-event-id="${ev.id}" data-recurring-id="${ev.recurringEventId || ''}" data-has-recurrence="${(ev.recurrence && ev.recurrence.length > 0) || (ev.repeat && ev.repeat !== 'none') ? 'true' : 'false'}">
                 <span class="event-initial-badge" style="background:${display.profileColor}">${display.initial}</span>
                 <div class="event-color-bar" style="background:${barColor}; ${display.glow}"></div>
                 <div class="event-card-content">
-                    <div class="event-card-title">${ev.title || 'Unbenannter Termin'}</div>
+                    <div class="event-card-title" style="display:flex; align-items:center; gap:6px;">
+                        ${ev.title || 'Unbenannter Termin'}
+                        ${(ev.recurrence && ev.recurrence.length > 0) || (ev.repeat && ev.repeat !== 'none') ? `
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.6; flex-shrink: 0;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                        ` : ''}
+                    </div>
                     <div class="event-card-time">
                         <span style="color:var(--text); font-weight:600;">${ev.startTime || '00:00'} – ${ev.endTime || '23:59'}</span>
                         <span style="margin-left:8px; opacity:0.6; font-weight:400;">· ${display.profileName}</span>
@@ -676,6 +774,11 @@ function openModal() {
     state.eventUrgency = 100;
     state.selectedColor = state.colorBinding ? state.profile.color : '#FFFFFF';
 
+    if (els.eventRepeat) {
+        els.eventRepeat.value = 'none';
+    }
+    updateCustomRepeatOptionText(els.eventDate.value);
+
     // Render profile selector
     renderEventProfileSelector();
 
@@ -707,6 +810,10 @@ els.modalOverlay.addEventListener('click', e => {
     if (e.target === els.modalOverlay) closeModal();
 });
 
+els.eventDate.addEventListener('change', (e) => {
+    updateCustomRepeatOptionText(e.target.value);
+});
+
 // Color picker (free color group)
 $$('#colorPicker .color-dot').forEach(dot => {
     dot.addEventListener('click', () => {
@@ -730,6 +837,24 @@ $('modalSaveBtn').addEventListener('click', () => {
     const assignedProfile = getProfileById(state.eventProfileId);
     const finalColor = state.colorBinding ? assignedProfile.color : state.selectedColor;
 
+    const repeatVal = els.eventRepeat ? els.eventRepeat.value : 'none';
+    let recurrence = null;
+    if (repeatVal !== 'none') {
+        const startD = new Date(els.eventDate.value + 'T00:00:00');
+        const WEEKDAY_CODES = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+        const weekdayCode = WEEKDAY_CODES[startD.getDay()];
+        
+        if (repeatVal === 'daily') {
+            recurrence = ["RRULE:FREQ=DAILY"];
+        } else if (repeatVal === 'weekly') {
+            recurrence = ["RRULE:FREQ=WEEKLY"];
+        } else if (repeatVal === 'monthly') {
+            recurrence = ["RRULE:FREQ=MONTHLY"];
+        } else if (repeatVal === 'custom') {
+            recurrence = [`RRULE:FREQ=WEEKLY;BYDAY=${weekdayCode}`];
+        }
+    }
+
     const event = {
         id: Date.now().toString(36) + Math.random().toString(36).slice(2),
         title,
@@ -739,7 +864,9 @@ $('modalSaveBtn').addEventListener('click', () => {
         color: finalColor,
         urgency: state.eventUrgency,
         notes: els.eventNotes.value.trim(),
-        profileId: state.eventProfileId
+        profileId: state.eventProfileId,
+        repeat: repeatVal,
+        ...(recurrence ? { recurrence } : {})
     };
 
     state.events.push(event);
@@ -1272,7 +1399,9 @@ function importGoogleEvents(googleEvents) {
                 existing.date !== formattedDate || 
                 existing.startTime !== startTime || 
                 existing.endTime !== endTime || 
-                existing.notes !== notes) {
+                existing.notes !== notes ||
+                JSON.stringify(existing.recurrence) !== JSON.stringify(ge.recurrence) ||
+                existing.recurringEventId !== ge.recurringEventId) {
                 
                 googleEventsInState[existingIdx] = {
                     ...existing,
@@ -1280,7 +1409,9 @@ function importGoogleEvents(googleEvents) {
                     date: formattedDate,
                     startTime,
                     endTime,
-                    notes
+                    notes,
+                    recurrence: ge.recurrence || null,
+                    recurringEventId: ge.recurringEventId || null
                 };
                 updatedCount++;
             }
@@ -1297,7 +1428,9 @@ function importGoogleEvents(googleEvents) {
                 urgency: 100,
                 notes,
                 profileId: state.activeProfileId,
-                isGoogleEvent: true
+                isGoogleEvent: true,
+                recurrence: ge.recurrence || null,
+                recurringEventId: ge.recurringEventId || null
             };
             googleEventsInState.push(newEvent);
             addedCount++;
@@ -1708,6 +1841,39 @@ $('googlePrivacyModalOverlay')?.addEventListener('click', e => {
     if (e.target === $('googlePrivacyModalOverlay')) {
         $('googlePrivacyModalOverlay').classList.remove('open');
     }
+});
+
+// Interactive Recurrence Hover Highlighting
+document.addEventListener('mouseover', e => {
+    const card = e.target.closest('.event-card, .week-event-card');
+    if (!card) return;
+    
+    const eventId = card.dataset.eventId;
+    const recurringId = card.dataset.recurringId;
+    const hasRecur = card.dataset.hasRecurrence === 'true';
+    
+    if (hasRecur || recurringId) {
+        let selector = '';
+        if (recurringId) {
+            selector = `[data-recurring-id="${recurringId}"]`;
+        } else if (eventId) {
+            selector = `[data-event-id="${eventId}"]`;
+        }
+        
+        if (selector) {
+            document.querySelectorAll(selector).forEach(el => {
+                el.classList.add('highlight-recurring');
+            });
+        }
+    }
+});
+
+document.addEventListener('mouseout', e => {
+    const card = e.target.closest('.event-card, .week-event-card');
+    if (!card) return;
+    document.querySelectorAll('.highlight-recurring').forEach(el => {
+        el.classList.remove('highlight-recurring');
+    });
 });
 
 // Register Service Worker for offline PWA capabilities
