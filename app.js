@@ -1482,7 +1482,7 @@ async function handleGoogleSync(silent = false) {
     if (!silent) {
         btns.forEach(btn => {
             btn.dataset.originalHtml = btn.innerHTML;
-            btn.innerHTML = '<span>Synchronisiere...</span>';
+            btn.innerHTML = '<span>Synchronisiere Termine...</span>';
             btn.disabled = true;
         });
     }
@@ -1493,37 +1493,54 @@ async function handleGoogleSync(silent = false) {
         const timeMin = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString(); // 1 month back
         const timeMax = new Date(now.getFullYear(), now.getMonth() + 6, 1).toISOString(); // 6 months forward
         
-        const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
+        let nextPageToken = null;
+        let allItems = [];
         
-        const response = await fetch(url, {
-            headers: {
-                'Authorization': `Bearer ${token}`
+        do {
+            if (!silent && allItems.length > 0) {
+                btns.forEach(btn => {
+                    btn.innerHTML = `<span>Synchronisiere Termine... (${allItems.length})</span>`;
+                });
             }
-        });
-        
-        if (response.status === 401) {
-            localStorage.removeItem('muzi_google_token');
-            localStorage.removeItem('muzi_google_token_expiry');
-            updateGoogleSyncUI();
-            if (!silent) {
-                showToast('Google-Sitzung abgelaufen. Bitte erneut verbinden.');
-                openGooglePrivacyModal();
-            } else {
-                showToast('Google-Sitzung abgelaufen. Erneute Anmeldung erforderlich.');
-            }
-            return;
-        }
 
-        if (!response.ok) throw new Error('API Error: ' + response.status);
-
-        const data = await response.json();
-        if (data.items) {
-            const count = importGoogleEvents(data.items);
-            if (!silent && count > 0) {
-                showToast(`${count} Google-Termine synchronisiert`);
-            } else if (!silent) {
-                showToast(`Kalender ist aktuell`);
+            let url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
+            if (nextPageToken) {
+                url += `&pageToken=${encodeURIComponent(nextPageToken)}`;
             }
+
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (response.status === 401) {
+                localStorage.removeItem('muzi_google_token');
+                localStorage.removeItem('muzi_google_token_expiry');
+                updateGoogleSyncUI();
+                if (!silent) {
+                    showToast('Google-Sitzung abgelaufen. Bitte erneut verbinden.');
+                    openGooglePrivacyModal();
+                } else {
+                    showToast('Google-Sitzung abgelaufen. Erneute Anmeldung erforderlich.');
+                }
+                return;
+            }
+
+            if (!response.ok) throw new Error('API Error: ' + response.status);
+
+            const data = await response.json();
+            if (data.items) {
+                allItems = allItems.concat(data.items);
+            }
+            nextPageToken = data.nextPageToken;
+        } while (nextPageToken);
+
+        const count = importGoogleEvents(allItems);
+        if (!silent && count > 0) {
+            showToast(`${count} Google-Termine synchronisiert`);
+        } else if (!silent) {
+            showToast(`Kalender ist aktuell`);
         }
         
         updateGoogleSyncUI();
@@ -1582,6 +1599,14 @@ function importGoogleEvents(googleEvents) {
     const manualEvents = state.events.filter(e => !e.isGoogleEvent && !e.googleId);
     let googleEventsInState = state.events.filter(e => e.isGoogleEvent || e.googleId);
 
+    // Create a Map for O(1) lookups
+    const googleEventsMap = new Map();
+    googleEventsInState.forEach(e => {
+        if (e.googleId) {
+            googleEventsMap.set(e.googleId, e);
+        }
+    });
+
     googleEvents.forEach(ge => {
         const startStr = ge.start.dateTime || ge.start.date;
         if (!startStr) return;
@@ -1605,12 +1630,11 @@ function importGoogleEvents(googleEvents) {
         const title = ge.summary || 'Google Termin';
         const notes = ge.description || '';
 
-        // Check if this Google event already exists in our state
-        const existingIdx = googleEventsInState.findIndex(e => e.googleId === ge.id);
+        // Check if this Google event already exists in our state map
+        const existing = googleEventsMap.get(ge.id);
 
-        if (existingIdx !== -1) {
+        if (existing) {
             // Update the Google event if its properties have changed
-            const existing = googleEventsInState[existingIdx];
             if (existing.title !== title || 
                 existing.date !== formattedDate || 
                 existing.startTime !== startTime || 
@@ -1619,16 +1643,13 @@ function importGoogleEvents(googleEvents) {
                 JSON.stringify(existing.recurrence) !== JSON.stringify(ge.recurrence) ||
                 existing.recurringEventId !== ge.recurringEventId) {
                 
-                googleEventsInState[existingIdx] = {
-                    ...existing,
-                    title,
-                    date: formattedDate,
-                    startTime,
-                    endTime,
-                    notes,
-                    recurrence: ge.recurrence || null,
-                    recurringEventId: ge.recurringEventId || null
-                };
+                existing.title = title;
+                existing.date = formattedDate;
+                existing.startTime = startTime;
+                existing.endTime = endTime;
+                existing.notes = notes;
+                existing.recurrence = ge.recurrence || null;
+                existing.recurringEventId = ge.recurringEventId || null;
                 updatedCount++;
             }
         } else {
@@ -1648,13 +1669,13 @@ function importGoogleEvents(googleEvents) {
                 recurrence: ge.recurrence || null,
                 recurringEventId: ge.recurringEventId || null
             };
-            googleEventsInState.push(newEvent);
+            googleEventsMap.set(ge.id, newEvent);
             addedCount++;
         }
     });
 
     // Recombine manual events with the updated Google events
-    state.events = [...manualEvents, ...googleEventsInState];
+    state.events = [...manualEvents, ...googleEventsMap.values()];
 
     if (addedCount > 0 || updatedCount > 0) {
         saveEvents();
