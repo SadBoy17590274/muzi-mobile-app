@@ -2007,55 +2007,54 @@ function openGooglePrivacyModal() {
     };
 }
 
-$$('.google-sync-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        e.preventDefault();
+// Handle google sync control clicks via delegation
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.google-sync-btn');
+    if (!btn) return;
+    e.preventDefault();
+    if (btn.classList.contains('disconnect-btn')) {
+        disconnectGoogle();
+    } else if (btn.classList.contains('sync-now-btn') || btn.id === 'googleSyncBtn') {
         if (state.googleConnected) {
-            // Show a choice: Sync or Disconnect?
-            // For now, let's just make it a sync button if already connected
-            // And add a way to disconnect.
             handleGoogleSync();
         } else {
             openGooglePrivacyModal();
         }
-    });
+    }
 });
 
 function updateGoogleSyncUI() {
-    $$('.google-sync-btn').forEach(btn => {
-        const iconHtml = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z" fill="#EA4335"/>
-        </svg>`;
-        
-        if (state.googleConnected) {
-            btn.innerHTML = iconHtml + '<span>Mit Google synchronisieren</span>';
-            btn.style.background = 'rgba(255,255,255,0.05)';
-            btn.style.color = 'var(--text)';
-            
-            // Add a long-press or double click to disconnect?
-            // Or just add a separate disconnect link in settings
-            if (!$('googleDisconnectLink')) {
-                const link = document.createElement('a');
-                link.id = 'googleDisconnectLink';
-                link.href = '#';
-                link.textContent = 'Konto trennen';
-                link.style.cssText = 'display: block; font-size: 11px; color: #ff453a; margin-top: 8px; text-decoration: none; text-align: center;';
-                link.onclick = (e) => {
-                    e.preventDefault();
-                    disconnectGoogle();
-                };
-                btn.parentNode.appendChild(link);
-            }
-        } else {
-            btn.innerHTML = iconHtml + '<span>Mit Google synchronisieren</span>';
-            btn.style.background = '';
-            btn.style.color = '';
-            $('googleDisconnectLink')?.remove();
-        }
-    });
+    const container = $('googleSyncControls');
+    const statusText = $('googleSyncStatus');
+    if (!container) return;
+
+    const iconHtml = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z" fill="#EA4335"/>
+    </svg>`;
+
+    if (state.googleConnected) {
+        if (statusText) statusText.textContent = 'Synchronisation aktiv';
+        container.innerHTML = `
+            <button class="google-sync-btn sync-now-btn">
+                ${iconHtml}
+                <span>Jetzt synchronisieren</span>
+            </button>
+            <button class="google-sync-btn disconnect-btn">
+                Konto trennen
+            </button>
+        `;
+    } else {
+        if (statusText) statusText.textContent = 'Automatische Synchronisation';
+        container.innerHTML = `
+            <button id="googleSyncBtn" class="google-sync-btn">
+                ${iconHtml}
+                <span>Mit Google synchronisieren</span>
+            </button>
+        `;
+    }
 }
 
 function disconnectGoogle() {
@@ -2253,7 +2252,13 @@ function getNextWeekday(dayName) {
 }
 
 function processAICmd(text) {
-    const lowerText = text.toLowerCase();
+    // 1. Normalize common typos and abbreviations in the input text
+    const normalizedText = text
+        .replace(/\bdinstag\b/i, "dienstag")
+        .replace(/\bdonerstag\b/i, "donnerstag")
+        .replace(/\bmitwoch\b/i, "mittwoch");
+
+    const lowerText = normalizedText.toLowerCase();
 
     // 1. ANZEIGEN (SHOW / LIST)
     if (lowerText.startsWith("zeige") || lowerText.startsWith("was steht") || lowerText.startsWith("termine") || lowerText.startsWith("liste")) {
@@ -2268,16 +2273,20 @@ function processAICmd(text) {
             let month = parseInt(dateMatch[2], 10);
             let year = parseInt(dateMatch[3], 10);
             if (year < 100) year += 2000;
-            dateObj = new Date(year, month - 1, day);
-            dateParsed = true;
+            if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+                dateObj = new Date(year, month - 1, day);
+                dateParsed = true;
+            }
         } else {
             dateMatch = targetText.match(/\b(\d{1,2})\.(\d{1,2})\b/);
             if (dateMatch) {
                 let day = parseInt(dateMatch[1], 10);
                 let month = parseInt(dateMatch[2], 10);
-                let year = new Date().getFullYear();
-                dateObj = new Date(year, month - 1, day);
-                dateParsed = true;
+                if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+                    let year = new Date().getFullYear();
+                    dateObj = new Date(year, month - 1, day);
+                    dateParsed = true;
+                }
             } else if (targetText.includes("morgen")) {
                 dateObj.setDate(dateObj.getDate() + 1);
                 dateParsed = true;
@@ -2322,7 +2331,7 @@ function processAICmd(text) {
 
     // 2. LOESCHEN (DELETE)
     if (lowerText.startsWith("lösche") || lowerText.startsWith("entferne") || lowerText.startsWith("delete")) {
-        const query = text.replace(/^(lösche|entferne|delete|den|termin)\s+/i, "").trim().toLowerCase();
+        const query = normalizedText.replace(/^(lösche|entferne|delete|den|termin)\s+/i, "").trim().toLowerCase();
         if (!query) return "Was möchtest du löschen? Bitte nenne mir den Namen des Termins.";
 
         const initialLength = state.events.length;
@@ -2342,7 +2351,7 @@ function processAICmd(text) {
 
     // 3. SUCHEN (SEARCH)
     if (lowerText.startsWith("suche") || lowerText.startsWith("finde") || lowerText.startsWith("search")) {
-        const query = text.replace(/^(suche nach|suche|finde|search)\s+/i, "").trim().toLowerCase();
+        const query = normalizedText.replace(/^(suche nach|suche|finde|search)\s+/i, "").trim().toLowerCase();
         if (!query) return "Wonach soll ich suchen?";
 
         const results = state.events.filter(e => {
@@ -2366,10 +2375,63 @@ function processAICmd(text) {
 
     // 4. ANLEGEN (CREATE / INSERT)
     let dateObj = new Date();
-    let textToParse = text;
+    let textToParse = normalizedText;
 
     let dateParsed = false;
     let timeParsed = false;
+
+    // Extract Time First (only formats that are definitely times to avoid date conflicts)
+    let hour = 9, minute = 0;
+
+    const timeRegex = /\b(\d{1,2})[.:](\d{2})\s*(uhr)?\b/gi;
+    let match;
+    while ((match = timeRegex.exec(textToParse)) !== null) {
+        const matchStr = match[0];
+        const val1 = parseInt(match[1], 10);
+        const val2 = parseInt(match[2], 10);
+        const isColon = matchStr.indexOf(':') !== -1;
+        const hasUhr = /uhr/i.test(matchStr);
+        
+        // Check if preceded by "um"
+        const beforeSub = textToParse.substring(0, match.index);
+        const isPrecededByUm = /\bum\s*$/i.test(beforeSub);
+        
+        if (isColon || hasUhr || val2 > 12 || val2 === 0 || isPrecededByUm) {
+            if (val1 >= 0 && val1 <= 23 && val2 >= 0 && val2 <= 59) {
+                hour = val1;
+                minute = val2;
+                textToParse = textToParse.replace(matchStr, "");
+                timeParsed = true;
+                break;
+            }
+        }
+    }
+
+    // Time format: HH Uhr (e.g., 9Uhr, 9 Uhr, 14 Uhr)
+    if (!timeParsed) {
+        const timeMatch = textToParse.match(/\b(\d{1,2})\s*uhr\b/i);
+        if (timeMatch) {
+            const val = parseInt(timeMatch[1], 10);
+            if (val >= 0 && val <= 23) {
+                hour = val;
+                textToParse = textToParse.replace(timeMatch[0], "");
+                timeParsed = true;
+            }
+        }
+    }
+
+    // Time format: um HH (e.g., um 9, um 14)
+    if (!timeParsed) {
+        const timeMatch = textToParse.match(/\bum\s+(\d{1,2})\b/i);
+        if (timeMatch) {
+            const val = parseInt(timeMatch[1], 10);
+            if (val >= 0 && val <= 23) {
+                hour = val;
+                textToParse = textToParse.replace(timeMatch[0], "");
+                timeParsed = true;
+            }
+        }
+    }
 
     // Date regexes
     let dateMatch = textToParse.match(/\b(\d{1,2})\.(\d{1,2})\.(\d{2,4})\b/);
@@ -2378,18 +2440,22 @@ function processAICmd(text) {
         let month = parseInt(dateMatch[2], 10);
         let year = parseInt(dateMatch[3], 10);
         if (year < 100) year += 2000;
-        dateObj = new Date(year, month - 1, day);
-        textToParse = textToParse.replace(dateMatch[0], "");
-        dateParsed = true;
+        if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+            dateObj = new Date(year, month - 1, day);
+            textToParse = textToParse.replace(dateMatch[0], "");
+            dateParsed = true;
+        }
     } else {
         dateMatch = textToParse.match(/\b(\d{1,2})\.(\d{1,2})\b/);
         if (dateMatch) {
             let day = parseInt(dateMatch[1], 10);
             let month = parseInt(dateMatch[2], 10);
-            let year = new Date().getFullYear();
-            dateObj = new Date(year, month - 1, day);
-            textToParse = textToParse.replace(dateMatch[0], "");
-            dateParsed = true;
+            if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+                let year = new Date().getFullYear();
+                dateObj = new Date(year, month - 1, day);
+                textToParse = textToParse.replace(dateMatch[0], "");
+                dateParsed = true;
+            }
         } else {
             // Check "morgen" / "heute"
             if (textToParse.match(/\bheute\b/i)) {
@@ -2419,24 +2485,13 @@ function processAICmd(text) {
         }
     }
 
-    // Time regexes
-    let hour = 9, minute = 0;
-    let timeMatch = textToParse.match(/\b(\d{1,2})[.:](\d{2})\s*(uhr)?\b/i);
-    if (timeMatch) {
-        hour = parseInt(timeMatch[1], 10);
-        minute = parseInt(timeMatch[2], 10);
-        textToParse = textToParse.replace(timeMatch[0], "");
-        timeParsed = true;
-    } else {
-        timeMatch = textToParse.match(/\b(\d{1,2})\s*uhr\b/i);
+    // Fallback for standalone hours (e.g. "Smila Arbeit 15" or "Smila Arbeit 9" after date is removed)
+    if (!timeParsed) {
+        const timeMatch = textToParse.match(/\b(\d{1,2})\b/);
         if (timeMatch) {
-            hour = parseInt(timeMatch[1], 10);
-            textToParse = textToParse.replace(timeMatch[0], "");
-            timeParsed = true;
-        } else {
-            timeMatch = textToParse.match(/\bum\s+(\d{1,2})\b/i);
-            if (timeMatch) {
-                hour = parseInt(timeMatch[1], 10);
+            const val = parseInt(timeMatch[1], 10);
+            if (val >= 0 && val <= 23) {
+                hour = val;
                 textToParse = textToParse.replace(timeMatch[0], "");
                 timeParsed = true;
             }
@@ -2445,7 +2500,9 @@ function processAICmd(text) {
 
     // Clean title - strip prepositions, helper words, and parsed weekdays/time expressions to leave only the pure event title
     let title = textToParse.replace(/\b(am|um|für|im|an|bei|von|bis|mit|einen|ein|neuen|termin|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag|heute|morgen)\b/gi, "");
-    title = title.replace(/\s+/g, " ").trim();
+    title = title.replace(/\s+/g, " ").replace(/^\s+|\s+$/g, "");
+    // Remove leftover punctuation (like commas or dots from date/time extraction)
+    title = title.replace(/^[\s,.:]+|[\s,.:]+$/g, "").replace(/\s+/g, " ").trim();
 
     if (!title) {
         return "Ich konnte den Titel des Termins nicht herauslesen. Bitte nenne mir den Namen des Termins (z.B. <em>'Morgen 10 Uhr Arzt'</em>).";
