@@ -2135,11 +2135,346 @@ document.addEventListener('click', e => {
 }, true);
 
 // Register Service Worker for offline PWA capabilities
+// Register Service Worker for offline PWA capabilities
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./service-worker.js')
             .then(reg => console.log('Service Worker registered', reg))
             .catch(err => console.error('Service Worker registration failed', err));
     });
+}
+
+// ===== MUZI AI ASSISTANT =====
+
+const aiModalOverlay = $('aiModalOverlay');
+const aiModalCloseBtn = $('aiModalCloseBtn');
+const aiBtn = $('aiBtn');
+const aiChatHistory = $('aiChatHistory');
+const aiChatInput = $('aiChatInput');
+const aiSendBtn = $('aiSendBtn');
+
+if (aiBtn) {
+    aiBtn.addEventListener('click', () => {
+        aiModalOverlay.classList.add('open');
+        setTimeout(() => aiChatInput.focus(), 300);
+    });
+}
+
+if (aiModalCloseBtn) {
+    aiModalCloseBtn.addEventListener('click', () => {
+        aiModalOverlay.classList.remove('open');
+    });
+}
+
+aiModalOverlay?.addEventListener('click', e => {
+    if (e.target === aiModalOverlay) {
+        aiModalOverlay.classList.remove('open');
+    }
+});
+
+aiSendBtn?.addEventListener('click', handleAISubmit);
+aiChatInput?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleAISubmit();
+});
+
+function showAIThinking() {
+    const msg = document.createElement('div');
+    msg.className = 'ai-msg assistant thinking';
+    msg.style.cssText = `
+        align-self: flex-start; background: var(--surface2); color: var(--text); 
+        padding: 12px 16px; border-radius: 18px 18px 18px 4px; 
+        max-width: 85%; border: 1px solid var(--border);
+        display: flex; gap: 4px; align-items: center; min-height: 40px;
+    `;
+    msg.innerHTML = `
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+    `;
+    aiChatHistory.appendChild(msg);
+    aiChatHistory.scrollTop = aiChatHistory.scrollHeight;
+    return msg;
+}
+
+function handleAISubmit() {
+    const text = aiChatInput.value.trim();
+    if (!text) return;
+
+    // Add user message
+    appendAIMessage(text, 'user');
+    aiChatInput.value = '';
+
+    // Show thinking indicator
+    const thinkingMsg = showAIThinking();
+
+    // Simulate thinking delay
+    setTimeout(() => {
+        // Remove thinking indicator
+        thinkingMsg.remove();
+        const response = processAICmd(text);
+        appendAIMessage(response, 'assistant');
+    }, 600);
+}
+
+function appendAIMessage(content, sender) {
+    const msg = document.createElement('div');
+    msg.className = `ai-msg ${sender}`;
+    
+    if (sender === 'user') {
+        msg.style.cssText = `
+            align-self: flex-end; background: var(--text); color: var(--bg); 
+            padding: 12px 16px; border-radius: 18px 18px 4px 18px; 
+            max-width: 85%; font-size: 14px; line-height: 1.4;
+        `;
+    } else {
+        msg.style.cssText = `
+            align-self: flex-start; background: var(--surface2); color: var(--text); 
+            padding: 12px 16px; border-radius: 18px 18px 18px 4px; 
+            max-width: 85%; font-size: 14px; line-height: 1.4; border: 1px solid var(--border);
+        `;
+    }
+    
+    msg.innerHTML = content;
+    aiChatHistory.appendChild(msg);
+    aiChatHistory.scrollTop = aiChatHistory.scrollHeight;
+}
+
+function getNextWeekday(dayName) {
+    const weekdays = ["sonntag", "montag", "dienstag", "mittwoch", "donnerstag", "freitag", "samstag"];
+    const targetIdx = weekdays.indexOf(dayName.toLowerCase());
+    if (targetIdx === -1) return null;
+    const today = new Date();
+    const todayIdx = today.getDay();
+    let diff = targetIdx - todayIdx;
+    if (diff <= 0) diff += 7; // next week
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + diff);
+    return targetDate;
+}
+
+function processAICmd(text) {
+    const lowerText = text.toLowerCase();
+
+    // 1. ANZEIGEN (SHOW / LIST)
+    if (lowerText.startsWith("zeige") || lowerText.startsWith("was steht") || lowerText.startsWith("termine") || lowerText.startsWith("liste")) {
+        let dateObj = new Date();
+        let targetText = lowerText.replace(/^(zeige|was steht|termine|liste|am|für|an|mir)\s+/i, "");
+        
+        // Parse date for list view
+        let dateParsed = false;
+        let dateMatch = targetText.match(/\b(\d{1,2})\.(\d{1,2})\.(\d{2,4})\b/);
+        if (dateMatch) {
+            let day = parseInt(dateMatch[1], 10);
+            let month = parseInt(dateMatch[2], 10);
+            let year = parseInt(dateMatch[3], 10);
+            if (year < 100) year += 2000;
+            dateObj = new Date(year, month - 1, day);
+            dateParsed = true;
+        } else {
+            dateMatch = targetText.match(/\b(\d{1,2})\.(\d{1,2})\b/);
+            if (dateMatch) {
+                let day = parseInt(dateMatch[1], 10);
+                let month = parseInt(dateMatch[2], 10);
+                let year = new Date().getFullYear();
+                dateObj = new Date(year, month - 1, day);
+                dateParsed = true;
+            } else if (targetText.includes("morgen")) {
+                dateObj.setDate(dateObj.getDate() + 1);
+                dateParsed = true;
+            } else if (targetText.includes("heute")) {
+                dateParsed = true;
+            } else {
+                const weekdays = ["montag", "dienstag", "mittwoch", "donnerstag", "freitag", "samstag", "sonntag"];
+                for (const d of weekdays) {
+                    if (targetText.includes(d)) {
+                        const nextD = getNextWeekday(d);
+                        if (nextD) {
+                            dateObj = nextD;
+                            dateParsed = true;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (dateParsed) {
+            const formattedDate = formatDate(dateObj);
+            const events = getEventsForDate(dateObj);
+            
+            const dateStr = dateObj.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+            if (events.length === 0) {
+                return `Am <strong>${dateStr}</strong> hast du keine Termine. 💤`;
+            }
+            
+            let html = `Am <strong>${dateStr}</strong> hast du folgende Termine:<br><br>`;
+            events.forEach(e => {
+                const profile = getProfileById(e.profileId);
+                const timeStr = e.startTime && e.endTime ? `${e.startTime} – ${e.endTime}` : "Ganztägig";
+                html += `<div style="margin-bottom: 6px; padding-left: 8px; border-left: 3px solid ${profile.color};">
+                    <strong>${e.title}</strong><br>
+                    <span style="font-size: 12px; color: var(--text2);">${timeStr} · ${profile.name}</span>
+                </div>`;
+            });
+            return html;
+        }
+    }
+
+    // 2. LOESCHEN (DELETE)
+    if (lowerText.startsWith("lösche") || lowerText.startsWith("entferne") || lowerText.startsWith("delete")) {
+        const query = text.replace(/^(lösche|entferne|delete|den|termin)\s+/i, "").trim().toLowerCase();
+        if (!query) return "Was möchtest du löschen? Bitte nenne mir den Namen des Termins.";
+
+        const initialLength = state.events.length;
+        state.events = state.events.filter(e => {
+            return !e.title.toLowerCase().includes(query);
+        });
+
+        const deletedCount = initialLength - state.events.length;
+        if (deletedCount > 0) {
+            saveEvents();
+            renderCalendar();
+            return `Ich habe ${deletedCount} Termin(e) mit dem Namen "<strong>${query}</strong>" gelöscht. ❌`;
+        } else {
+            return `Ich konnte keinen Termin mit dem Namen "<strong>${query}</strong>" finden.`;
+        }
+    }
+
+    // 3. SUCHEN (SEARCH)
+    if (lowerText.startsWith("suche") || lowerText.startsWith("finde") || lowerText.startsWith("search")) {
+        const query = text.replace(/^(suche nach|suche|finde|search)\s+/i, "").trim().toLowerCase();
+        if (!query) return "Wonach soll ich suchen?";
+
+        const results = state.events.filter(e => {
+            return e.title.toLowerCase().includes(query) || (e.notes && e.notes.toLowerCase().includes(query));
+        });
+
+        if (results.length === 0) {
+            return `Ich habe keine Termine für "<strong>${query}</strong>" gefunden.`;
+        }
+
+        let html = `Ich habe ${results.length} passende Termine gefunden:<br><br>`;
+        results.forEach(e => {
+            const profile = getProfileById(e.profileId);
+            html += `<div style="margin-bottom: 8px; padding-left: 8px; border-left: 3px solid ${profile.color};">
+                <strong>${e.title}</strong><br>
+                <span style="font-size: 12px; color: var(--text2);">${e.date} · ${e.startTime || '--:--'} – ${e.endTime || '--:--'}</span>
+            </div>`;
+        });
+        return html;
+    }
+
+    // 4. ANLEGEN (CREATE / INSERT)
+    let dateObj = new Date();
+    let textToParse = text;
+
+    let dateParsed = false;
+    let timeParsed = false;
+
+    // Date regexes
+    let dateMatch = textToParse.match(/\b(\d{1,2})\.(\d{1,2})\.(\d{2,4})\b/);
+    if (dateMatch) {
+        let day = parseInt(dateMatch[1], 10);
+        let month = parseInt(dateMatch[2], 10);
+        let year = parseInt(dateMatch[3], 10);
+        if (year < 100) year += 2000;
+        dateObj = new Date(year, month - 1, day);
+        textToParse = textToParse.replace(dateMatch[0], "");
+        dateParsed = true;
+    } else {
+        dateMatch = textToParse.match(/\b(\d{1,2})\.(\d{1,2})\b/);
+        if (dateMatch) {
+            let day = parseInt(dateMatch[1], 10);
+            let month = parseInt(dateMatch[2], 10);
+            let year = new Date().getFullYear();
+            dateObj = new Date(year, month - 1, day);
+            textToParse = textToParse.replace(dateMatch[0], "");
+            dateParsed = true;
+        } else {
+            // Check "morgen" / "heute"
+            if (textToParse.match(/\bheute\b/i)) {
+                dateObj = new Date();
+                textToParse = textToParse.replace(/\bheute\b/i, "");
+                dateParsed = true;
+            } else if (textToParse.match(/\bmorgen\b/i)) {
+                dateObj = new Date();
+                dateObj.setDate(dateObj.getDate() + 1);
+                textToParse = textToParse.replace(/\bmorgen\b/i, "");
+                dateParsed = true;
+            } else {
+                const weekdays = ["montag", "dienstag", "mittwoch", "donnerstag", "freitag", "samstag", "sonntag"];
+                for (const d of weekdays) {
+                    const reg = new RegExp(`\\b${d}\\b`, "i");
+                    if (textToParse.match(reg)) {
+                        const nextD = getNextWeekday(d);
+                        if (nextD) {
+                            dateObj = nextD;
+                            dateParsed = true;
+                        }
+                        textToParse = textToParse.replace(reg, "");
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // Time regexes
+    let hour = 9, minute = 0;
+    let timeMatch = textToParse.match(/\b(\d{1,2})[.:](\d{2})\s*(uhr)?\b/i);
+    if (timeMatch) {
+        hour = parseInt(timeMatch[1], 10);
+        minute = parseInt(timeMatch[2], 10);
+        textToParse = textToParse.replace(timeMatch[0], "");
+        timeParsed = true;
+    } else {
+        timeMatch = textToParse.match(/\b(\d{1,2})\s*uhr\b/i);
+        if (timeMatch) {
+            hour = parseInt(timeMatch[1], 10);
+            textToParse = textToParse.replace(timeMatch[0], "");
+            timeParsed = true;
+        } else {
+            timeMatch = textToParse.match(/\bum\s+(\d{1,2})\b/i);
+            if (timeMatch) {
+                hour = parseInt(timeMatch[1], 10);
+                textToParse = textToParse.replace(timeMatch[0], "");
+                timeParsed = true;
+            }
+        }
+    }
+
+    // Clean title - strip prepositions, helper words, and parsed weekdays/time expressions to leave only the pure event title
+    let title = textToParse.replace(/\b(am|um|für|im|an|bei|von|bis|mit|einen|ein|neuen|termin|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag|heute|morgen)\b/gi, "");
+    title = title.replace(/\s+/g, " ").trim();
+
+    if (!title) {
+        return "Ich konnte den Titel des Termins nicht herauslesen. Bitte nenne mir den Namen des Termins (z.B. <em>'Morgen 10 Uhr Arzt'</em>).";
+    }
+
+    // Format final dates and times
+    const formattedDate = formatDate(dateObj);
+    const startTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+    const endTime = `${String(hour + 1).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+
+    const newEvent = {
+        id: 'evt_' + Date.now(),
+        title: title,
+        date: formattedDate,
+        startTime: startTime,
+        endTime: endTime,
+        color: state.profile.color,
+        urgency: 100,
+        notes: "Automatisch erstellt von Muzi AI",
+        profileId: state.activeProfileId
+    };
+
+    state.events.push(newEvent);
+    saveEvents();
+    renderCalendar();
+
+    const dateStr = dateObj.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+    return `Ich habe den Termin „<strong>${title}</strong>“ für dich eingetragen! 📅<br><br>
+    📆 <strong>Datum:</strong> ${dateStr}<br>
+    ⏰ <strong>Uhrzeit:</strong> ${startTime} – ${endTime} Uhr`;
 }
 

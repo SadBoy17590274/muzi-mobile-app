@@ -1762,3 +1762,59 @@ select.form-input {
 .apk-download-btn:active {
     transform: scale(0.98) translateY(0);
 }
+
+/* ========== MUZI AI STYLES ========== */
+.ai-msg {
+    animation: messageEnter 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes messageEnter {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#aiSendBtn:active {
+    transform: scale(0.92);
+    opacity: 0.8;
+}
+
+#aiChatInput:focus {
+    border-color: var(--accent) !important;
+}
+
+/* Thinking Indicator bouncing dots styling & animation */
+.ai-msg.thinking {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.ai-msg.thinking .dot {
+    width: 6px;
+    height: 6px;
+    background-color: var(--text2);
+    border-radius: 50%;
+    display: inline-block;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+.ai-msg.thinking .dot:nth-child(1) {
+    animation-delay: -0.32s;
+}
+.ai-msg.thinking .dot:nth-child(2) {
+    animation-delay: -0.16s;
+}
+@keyframes bounce {
+    0%, 80%, 100% { 
+        transform: scale(0.3);
+        opacity: 0.4;
+    } 40% { 
+        transform: scale(1.0);
+        opacity: 1;
+    }
+}
+
